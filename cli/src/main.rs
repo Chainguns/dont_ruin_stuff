@@ -121,6 +121,8 @@ async fn main() -> Result<(), Error> {
                 .takes_value(true)))
         .get_matches();
 
+
+    
     if let Some(vars) = matches.subcommand_matches("map") {
         if let Some(l) = vars.value_of("LOGS_FILE") {
             if let Some(o) = vars.value_of("OUTPUT") {

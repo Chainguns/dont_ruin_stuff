@@ -1,3 +1,4 @@
+use super::*;
 use mapper::*;
 use digest::*;
 use attacker::*;
@@ -6,12 +7,14 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use url::{Url};
 use colored::*;
+use futures::executor;
+use uuid::Uuid;
 
 fn read_file(mut file_name:&str) -> Option<String> {
     let mut file = match File::open(&mut file_name) {
         Ok(f) => f,
         Err(_) => {
-            println!("File \"{}\" not found", file_name);
+            println!("{}", format!("File \"{}\" not found", file_name).red());
             return None;
         },
     };
@@ -19,7 +22,7 @@ fn read_file(mut file_name:&str) -> Option<String> {
     match file.read_to_string(&mut file_data) {
         Ok(_) => (),
         Err(_) => {
-            println!("Could not read data from file \"{}\"", file_name);
+            println!("{}", format!("Could not read data from file \"{}\"", file_name));
             return None;
         },
     };
@@ -49,7 +52,24 @@ fn write_map_file(file_name:String, map:String) {
     map_file.write_all(map.as_bytes()).unwrap();
 }
 
+pub fn add_token(token:String) -> bool {
+    match Uuid::parse_str(&token) {
+        Ok(_) => {
+            let mut map_file = OpenOptions::new().write(true).create(true).open(format!("{}.txt", "token")).unwrap();
+            map_file.write_all(token.as_bytes()).unwrap();
+            true
+        },
+        Err(e) => {
+            println!("{:?}", e);
+            false
+        }
+    }
+}
+
 pub fn map(logs_file:String, output:String) {
+    if !executor::block_on(get_access("Map")) {
+        return;
+    }
     let logs = match read_file(&logs_file) {
         Some(r) => r,
         None => {
@@ -69,6 +89,9 @@ pub fn map(logs_file:String, output:String) {
 }
 
 pub fn prepare_attacker(mut url:String, map_file:String) {
+    if !executor::block_on(get_access("Prepare")) {
+        return;
+    }
     let s_map = match read_file(&format!("{}.json", map_file)){
         Some(r) => r,
         None => {
@@ -99,7 +122,10 @@ pub fn prepare_attacker(mut url:String, map_file:String) {
     }
 }
 
-pub async fn attack_domain(map_file:String, decide_file:String, pop:usize, gen:usize, verbosity:Verbosity) { // gen and pop
+pub async fn attack_domain(map_file:String, decide_file:String, pop:usize, gen:usize, verbosity:Verbosity) {
+    if !executor::block_on(get_access("Attack")) {
+        return;
+    }
     let s_map = match read_file(&format!("{}.json", map_file)){
         Some(r) => r,
         None => {
@@ -163,6 +189,9 @@ pub async fn attack_domain(map_file:String, decide_file:String, pop:usize, gen:u
 }
 
 pub fn decide_sessions(logs_file:String, map_file:String) {
+    if !executor::block_on(get_access("Decide")) {
+        return;
+    }
     let vec_sessions = match read_file(&format!("{}", logs_file)) {
         Some(r) => r,
         None => {
@@ -219,6 +248,9 @@ pub fn decide_sessions(logs_file:String, map_file:String) {
 }
 
 pub fn load(logs_file:String, map_file:String) {
+    if !executor::block_on(get_access("Load")) {
+        return;
+    }
     let logs = match read_file(&logs_file) {
         Some(r) => r,
         None => {
