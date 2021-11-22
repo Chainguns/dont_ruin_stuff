@@ -148,7 +148,7 @@ pub async fn attack_domain(map_file:String, decide_file:String, pop:usize, gen:u
                 let anomalys = decide(d_map.clone(), vec_sessions, None);
                 let mut a1 = vec![];
                 let mut a2 = vec![];
-                println!("{}", "Starting decider...".bold());
+                println!("{}", "Decider starting\nSearching for anomalys...".bold());
                 for a in &anomalys {
                     match a {
                         (Some(r),v) => {
@@ -186,7 +186,7 @@ pub async fn attack_domain(map_file:String, decide_file:String, pop:usize, gen:u
             }
         }
     }
-    println!("{}", "Done!".purple().bold());
+    println!("{}", "Attcker done!".purple().bold());
 }
 
 pub fn decide_sessions(logs_file:String, map_file:String) {
@@ -215,7 +215,7 @@ pub fn decide_sessions(logs_file:String, map_file:String) {
     let anomalys = decide(d_map.clone(), get_sessions(&vec_sessions), None);
     let mut a1 = vec![];
     let mut a2 = vec![];
-    println!("{}", "Starting decider...".bold());
+    println!("{}", "Decider starting\nSearching for anomalys...".bold());
     for a in &anomalys {
         match a {
             (Some(r),v) => {
@@ -245,7 +245,7 @@ pub fn decide_sessions(logs_file:String, map_file:String) {
             },
         }
     }
-    println!("{}", "Done!".bold());
+    println!("{}", "Decider done!".bold());
 }
 
 pub fn load(logs_file:String, map_file:String) {
