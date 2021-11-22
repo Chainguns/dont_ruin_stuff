@@ -13,6 +13,16 @@ async fn main() -> Result<(), Error> {
         .version("1.0")
         .author("Roy B. <roy.barnea@blstsecurity.com>")
         .about("Blst cli app")
+        .subcommand(App::new("add_token")
+            .about("Creates a client token file with the given token")
+            .arg(Arg::new("TOKEN")
+                .short('t')
+                .long("token")
+                .value_name("Client Token Name")
+                .about("The client token you got from firecracker's webpage")
+                .required(true)
+                .takes_value(true)))
+
         .subcommand(App::new("map")
             .about("Creates a new map from a given log file, outputs a digest file to the local directory")
             .arg(Arg::new("LOGS_FILE")
@@ -123,7 +133,12 @@ async fn main() -> Result<(), Error> {
 
 
     
-    if let Some(vars) = matches.subcommand_matches("map") {
+    if let Some(vars) = matches.subcommand_matches("add_token") {
+        if let Some(t) = vars.value_of("TOKEN") {
+            add_token(t.to_string());
+        }
+    }
+    else if let Some(vars) = matches.subcommand_matches("map") {
         if let Some(l) = vars.value_of("LOGS_FILE") {
             if let Some(o) = vars.value_of("OUTPUT") {
                 map(l.to_string(), o.to_string());

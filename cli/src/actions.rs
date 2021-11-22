@@ -57,6 +57,7 @@ pub fn add_token(token:String) -> bool {
         Ok(_) => {
             let mut map_file = OpenOptions::new().write(true).create(true).open(format!("{}.txt", "token")).unwrap();
             map_file.write_all(token.as_bytes()).unwrap();
+            println!("{}", "Token added successfuly".green());
             true
         },
         Err(e) => {

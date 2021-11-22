@@ -11,7 +11,7 @@ pub async fn get_access(action: &str) -> bool {
         },
         Err(_)=>{
             println!("{}", "file \"token.txt\" not found, make sure that you have it in this directory".red());
-            println!("{}", "to get token go to your user panael at https://www.blstsecurity.com/firecracker/UserDetails".bold()); //omer
+            println!("{}", "to get your token go to your user details dashboard at https://www.blstsecurity.com/firecracker/UserDetails".purple().bold());
             return false;
         },
     };
@@ -20,7 +20,7 @@ pub async fn get_access(action: &str) -> bool {
         Ok(_) => (),
         Err(_)=>{
             println!("{}", "could not read the data from \"token.txt\", make sure the data is valid".red());
-            // omer
+            println!("{}", "to get your token go to your user details dashboard at https://www.blstsecurity.com/firecracker/UserDetails".purple().bold());
             return false;
         },
     }
@@ -45,11 +45,10 @@ pub async fn get_access(action: &str) -> bool {
         Ok(j) => j,
         Err(_) => {
             println!("{}", "client_token not valid".red());
-            //omer
+            println!("{}", "to get your token go to your user details dashboard at https://www.blstsecurity.com/firecracker/UserDetails".purple().bold());
             return false;
         }
     };
-    println!("{:?}", json);
     match json["opt_in"].as_bool() {
         Some(b) => {
             if b {
