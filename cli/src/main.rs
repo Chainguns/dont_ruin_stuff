@@ -3,14 +3,14 @@ use firecracker::*;
 use colored::*;
 use attacker::Verbosity;
 
-const VERSION:&'static str = "1.0.0";
+const VERSION:&'static str = "0.1.0";
 const MAP_FILE:&'static str = "map";
 const DECIDE_FILE:&'static str = "decide";
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let matches = App::new("FIRECRACKER")
-        .version("1.0")
+        .version(VERSION)
         .author("Roy B. <roy.barnea@blstsecurity.com>")
         .about("Blst cli app")
         .subcommand(App::new("add_token")
