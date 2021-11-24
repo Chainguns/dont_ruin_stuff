@@ -21,6 +21,7 @@ colored = "2.0.0"
 url = { version = "2" }
 hyper = { version = "^0.14", features = ["http2"] }
 hyper-rustls = { git = "https://github.com/rustls/hyper-rustls", features = ["http2"] }
+httparse = "1.5.1"
 
 #[target.x86_64-unknown-linux-gnu.dependencies]
 #hyper = { version = "^0.14", features = ["http2"] }

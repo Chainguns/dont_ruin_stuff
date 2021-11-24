@@ -9,6 +9,20 @@ use url::{Url};
 use colored::*;
 use futures::executor;
 use uuid::Uuid;
+use httparse::{Request, Response,Status};
+use std::collections::HashMap;
+
+#[derive(Debug,Clone,Serialize,Deserialize,Default,PartialEq)]
+struct ClientReqRes {
+    request:String,
+    response:String,
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize,Default,PartialEq)]
+struct Log {
+    session:Vec<ClientReqRes>,
+}
+
 
 fn read_file(mut file_name:&str) -> Option<String> {
     let mut file = match File::open(&mut file_name) {
@@ -27,6 +41,108 @@ fn read_file(mut file_name:&str) -> Option<String> {
         },
     };
     Some(file_data)
+}
+
+fn method_from_str(m: &str) -> Method{
+    match m {
+        "GET" => Method::GET,
+        "POST" => Method::POST,
+        "OPTIONS" => Method::OPTIONS,
+        "PATCH" => Method::PATCH,
+        "DELETE" => Method::DELETE,
+        _ => Method::Other,
+    }
+}
+
+fn parse_http(file_data:String) -> Vec<Session> {
+    let mut ret = vec![];
+    match serde_json::from_str::<Vec<Log>>(&file_data) {
+        Ok(logs) => {
+            for (i,s) in logs.iter().enumerate() {
+                let mut session = vec![];
+                for log in &s.session {
+                    let mut headers1 = [httparse::EMPTY_HEADER; 24];
+                    let mut req1 = httparse::Request::new(&mut headers1);
+                    let req_payload = match req1.parse(log.request.as_bytes()) {
+                        Ok(status) => {
+                            match status{
+                                Status::Complete(offset) => log.request[offset..].to_string(),
+                                Status::Partial=> {
+                                    println!("This request is a partial request:\n {:?}", req1);
+                                    continue;
+                                }
+                            }    
+                        },
+                        Err(e) => {
+                            println!("{}", e);
+                            continue;
+                        }
+                    };
+                    let mut req_headers = HashMap::new();
+                    for h in req1.headers {
+                        req_headers.insert(h.name.to_string(), std::str::from_utf8(h.value).unwrap().to_string());
+                    };
+                    let path = req1.path.unwrap().to_string();
+                    let method = method_from_str(req1.method.unwrap());
+                    let req_query = match path.chars().position(|lf| lf == '?') {
+                        Some(pos) => {
+                            path[pos..].to_string()
+                        },
+                        None => {
+                            String::new()
+                        }
+                    };
+
+                    let mut headers2 = [httparse::EMPTY_HEADER; 24];
+                    let mut res1 = httparse::Response::new(&mut headers2);
+                    let res2 = res1.parse(log.response.as_bytes()).unwrap();
+                    let res_payload = match res1.parse(log.response.as_bytes()) {
+                        Ok(status) => {
+                            match status{
+                                Status::Complete(offset) => log.response[offset..].to_string(),
+                                Status::Partial=> {
+                                    println!("This response is a partial response:\n {:?}", res1);
+                                    continue;
+                                }
+                            }    
+                        },
+                        Err(e) => {
+                            println!("{}", e);
+                            continue;
+                        }
+                    };
+                    let mut res_headers = HashMap::new();
+                    for h in res1.headers {
+                        res_headers.insert(h.name.to_string(), std::str::from_utf8(h.value).unwrap().to_string());
+                    };
+                    let status = res1.code.unwrap();
+
+                    session.push(
+                        ReqRes{
+                            req_headers,
+                            res_headers,
+                            path,
+                            method,
+                            status,
+                            req_payload,
+                            res_payload,
+                            req_query,
+                        }
+                    );
+                }
+                ret.push(
+                    Session{
+                        token: i.to_string(),
+                        req_res: session, 
+                    }
+                );
+            }
+        },
+        Err(e) => {
+            println!("{}", e);
+        }
+    }
+    ret
 }
 
 fn get_sessions(logs:&str) -> Vec<Session> {
@@ -79,7 +195,7 @@ pub fn map(logs_file:String, output:String) {
         }
     };
     let mut digest = Digest::default();
-    let sessions = get_sessions(&logs);
+    let sessions = parse_http(logs.clone());
     if !sessions.is_empty() {
         println!("{}", "Starts mapping...".green());
         digest.load_vec_session(sessions);
