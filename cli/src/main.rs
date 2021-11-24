@@ -11,7 +11,7 @@ const DECIDE_FILE:&'static str = "decide";
 async fn main() -> Result<(), Error> {
     let matches = App::new("FIRECRACKER")
         .version(VERSION)
-        .author("Roy B. <roy.barnea@blstsecurity.com>")
+        .author("<support@blstsecurity.com>")
         .about("Blst cli app")
         .subcommand(App::new("add_token")
             .about("Creates a client token file with the given token")
