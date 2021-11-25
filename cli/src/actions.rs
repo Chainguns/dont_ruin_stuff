@@ -9,7 +9,7 @@ use url::{Url};
 use colored::*;
 use futures::executor;
 use uuid::Uuid;
-use httparse::{Request, Response,Status};
+use httparse::Status;
 use std::collections::HashMap;
 
 #[derive(Debug,Clone,Serialize,Deserialize,Default,PartialEq)]
@@ -95,7 +95,7 @@ fn parse_http(file_data:String) -> Vec<Session> {
 
                     let mut headers2 = [httparse::EMPTY_HEADER; 24];
                     let mut res1 = httparse::Response::new(&mut headers2);
-                    let res2 = res1.parse(log.response.as_bytes()).unwrap();
+                    //let res2 = res1.parse(log.response.as_bytes()).unwrap();
                     let res_payload = match res1.parse(log.response.as_bytes()) {
                         Ok(status) => {
                             match status{
