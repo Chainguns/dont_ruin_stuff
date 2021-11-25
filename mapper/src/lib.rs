@@ -217,7 +217,9 @@ impl MapLoad for Digest{
                 }
             }
             if !found{
-                self.ep_hash.push(EndpointHash::new(session.req_res[i].path.clone()));
+                let mut ep1 = EndpointHash::new(session.req_res[i].path.clone());
+                ep1.load(&session.req_res[i]);
+                self.ep_hash.push(ep1);
             }
         }
         let eps = self.turn_hash(); 
@@ -249,7 +251,9 @@ impl MapLoad for Digest{
                     }
                 }
                 if !found{
-                    self.ep_hash.push(EndpointHash::new(session.req_res[i].path.clone()));
+                    let mut ep1 = EndpointHash::new(session.req_res[i].path.clone());
+                    ep1.load(&session.req_res[i]);
+                    self.ep_hash.push(ep1);
                 }
             }
         }
