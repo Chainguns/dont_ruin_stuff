@@ -278,9 +278,9 @@ pub async fn attack_domain(map_file:String, decide_file:String, pop:usize, gen:u
                                     println!("{:?}", r.session.token);
                                     for ep in &r.session.req_res {
                                         if ep == e {
-                                            println!("{}", (&serde_json::to_string(&ep).unwrap()).red()); 
+                                            println!("{}", format!("{}",ep).red()); 
                                         } else {
-                                            println!("{}", (&serde_json::to_string(&ep).unwrap()).green());
+                                            println!("{}", format!("{}",ep).green());
                                         }
                                     }
                                 },
@@ -345,9 +345,9 @@ pub fn decide_sessions(logs_file:String, map_file:String) {
                         println!("{:?}", r.session.token);
                         for ep in &r.session.req_res {
                             if ep == e {
-                                println!("{}", (&serde_json::to_string(&ep).unwrap()).red()); 
+                                println!("{}", format!("{}",ep).red()); 
                             } else {
-                                println!("{}", (&serde_json::to_string(&ep).unwrap()).green());
+                                println!("{}", format!("{}",ep).green());
                             }
                         }
                     },
