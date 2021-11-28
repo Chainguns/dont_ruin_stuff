@@ -57,8 +57,9 @@ fn method_from_str(m: &str) -> Method{
     }
 }
 
-fn parse_http(file_data: &str) -> Vec<Session> {
+fn parse_http(file_data: &str) -> Result<Vec<Session>, String> {
     let mut ret = vec![];
+    let mut errors = String::new();
     match serde_json::from_str::<Vec<Log>>(file_data) {
         Ok(logs) => {
             for (i,s) in logs.iter().enumerate() {
@@ -77,7 +78,7 @@ fn parse_http(file_data: &str) -> Vec<Session> {
                             }    
                         },
                         Err(_) => {
-                            print_err("Failed at parsing the request");
+                            errors += "Failed at parsing the request\n";
                             continue;
                         }
                     };
@@ -86,23 +87,23 @@ fn parse_http(file_data: &str) -> Vec<Session> {
                         req_headers.insert(h.name.to_string(), match std::str::from_utf8(h.value) {
                             Ok(r) => r.to_string(),
                             Err(_) => {
-                                print_err("Failed at parsing request headers in the logs files");
-                                return vec![];
+                                errors += "Failed at parsing request headers in the logs files";
+                                return Err(errors);
                             }
                         });
                     };
                     let path = match req1.path {
                         Some(r) => r.to_string(),
                         None => {
-                            print_err("Failed at getting path from request in the logs files");
-                            return vec![];
+                            errors += "Failed at getting path from request in the logs files";
+                            return Err(errors);
                         }
                     };
                     let method = match req1.method {
                         Some(r) => method_from_str(r),
                         None => {
-                            print_err("Failed at getting method from request in the logs files");
-                            return vec![];
+                            errors += "Failed at getting method from request in the logs files";
+                            return Err(errors);
                         }
                     };
                     let req_query = match path.chars().position(|lf| lf == '?') {
@@ -113,7 +114,6 @@ fn parse_http(file_data: &str) -> Vec<Session> {
                             String::new()
                         }
                     };
-
                     let mut headers2 = [httparse::EMPTY_HEADER; 24];
                     let mut res1 = httparse::Response::new(&mut headers2);
                     let res_payload = match res1.parse(log.response.as_bytes()) {
@@ -127,7 +127,7 @@ fn parse_http(file_data: &str) -> Vec<Session> {
                             }    
                         },
                         Err(_) => {
-                            print_err("Failed at parsing the response in the logs files");
+                            errors += "Failed at parsing the response in the logs files\n";
                             continue;
                         }
                     };
@@ -136,16 +136,16 @@ fn parse_http(file_data: &str) -> Vec<Session> {
                         res_headers.insert(h.name.to_string(), match std::str::from_utf8(h.value) {
                             Ok(r) => r.to_string(),
                             Err(_) => {
-                                print_err("Failed at parsing response headers in the logs files");
-                                return vec![];
+                                errors += "Failed at parsing response headers in the logs files";
+                                return Err(errors);
                             }
                         });
                     };
                     let status = match res1.code {
                         Some(r) => r,
                         None => {
-                            print_err("Failed at getting status from response in the logs files");
-                            return vec![];
+                            errors += "Failed at getting status from response in the logs files";
+                            return Err(errors);
                         }
                     };
                     session.push(
@@ -170,26 +170,25 @@ fn parse_http(file_data: &str) -> Vec<Session> {
             }
         },
         Err(_) => {
-            print_err("Failed at prasing logs file into Vec<Logs>");
-            return vec![];
+            errors += "Failed at prasing logs file into Vec<Logs>";
+            return Err(errors);
         }
     }
-    ret
+    Ok(ret)
 }
 
-fn vec_sessions_parse(logs: &str) -> Vec<Session> {
+fn vec_sessions_parse(logs: &str) -> Result<Vec<Session>, String> {
     match serde_json::from_str::<Vec<Session>>(logs) {
-        Ok(r) => r,
+        Ok(r) => Ok(r),
         Err(e0) => {
             match serde_json::from_str::<Session>(logs) {
                 Ok(r) => {
-                    vec![r]
+                    Ok(vec![r])
                 },
                 Err(e1) => {
-                    print_err(&format!("{}", e0));
-                    print_err(&format!("{}", e1));
-                    println!("{} {}", "Ran into an error while parsing your logs".red(), "you can check out the correct format in this address: https://www.blstsecurity.com/firecracker/Documentation".purple());
-                    vec![]
+                    let mut err:String = format!("{}", e0);
+                    err += &format!("\n{}", e1);
+                    Err(err)
                 },
             }
         },
@@ -198,16 +197,44 @@ fn vec_sessions_parse(logs: &str) -> Vec<Session> {
 
 fn get_sessions(logs: &str) -> Vec<Session> {
     match (parse_http(logs.clone()), vec_sessions_parse(&logs)) {
-        (vec1, vec2) => {
+        (Ok(vec1), Ok(vec2)) => {
             if !vec1.is_empty() {
                 vec1
             } else if !vec2.is_empty() {
                 vec2
             } else {
                 print_err("Failed parsing the logs");
+                println!("{} {}", "Ran into an error while parsing your logs".red(), "you can check out the correct formats in this address: https://www.blstsecurity.com/firecracker/Documentation".purple());
                 return vec![];
             }
-        }
+        },
+        (Ok(vec1), Err(e)) => {
+            if !vec1.is_empty() {
+                vec1
+            } else {
+                print_err(&format!("{}\n", e));
+                print_err("Failed parsing the logs");
+                println!("{} {}", "Ran into an error while parsing your logs".red(), "you can check out the correct formats in this address: https://www.blstsecurity.com/firecracker/Documentation".purple());
+                return vec![];
+            }
+        },
+        (Err(e), Ok(vec2)) => {
+            if !vec2.is_empty() {
+                vec2
+            } else {
+                print_err(&format!("{}\n", e));
+                print_err("Failed parsing the logs");
+                println!("{} {}", "Ran into an error while parsing your logs".red(), "you can check out the correct formats in this address: https://www.blstsecurity.com/firecracker/Documentation".purple());
+                return vec![];
+            }
+        },
+        (Err(e1), Err(e2)) => {
+            print_err(&format!("{}\n", e1));
+            print_err(&format!("{}\n", e2));
+            print_err("Failed parsing the logs");
+            println!("{} {}", "Ran into an error while parsing your logs".red(), "you can check out the correct formats in this address: https://www.blstsecurity.com/firecracker/Documentation".purple());
+            return vec![];
+        },
     }
 }
 
