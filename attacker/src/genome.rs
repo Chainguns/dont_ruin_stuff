@@ -13,10 +13,7 @@ impl Chromosome{
     pub fn redraw_dna(&mut self){
         let mut rng = rand::thread_rng();
         let len = self.dna.len();
-        let mut dna = vec![];
-        for _ in 0..len{
-            dna.push(rng.gen::<f32>().round() as u8);
-        }
+        let dna = (1..len).map(|_i| rng.gen_range(0..2)).collect::<Vec<u8>>();
         self.dna = dna;
     }
     pub fn new(param:&ParamDescriptor)->Chromosome{
@@ -27,14 +24,11 @@ impl Chromosome{
             ValueDescriptor::Bool=>1,
             ValueDescriptor::Unknown=>42,
         };
-        let mut dna = vec![];
-        for _ in 0..len{
-            dna.push(rng.gen::<f32>().round() as u8);
-        }
+        let dna = (1..len).map(|_i| rng.gen_range(0..2)).collect::<Vec<u8>>();
         Chromosome{
             param_name:param.name.clone(),
             dna,
-            delivery_method:param.from.clone(),
+            delivery_method:param.from,
             descriptor:param.value.clone(),
         }
     }
@@ -47,7 +41,7 @@ pub struct Gene{
     fitness:u16,
 }
 impl Gene{
-    pub fn chromosomes(&self)->&Vec<Chromosome>{ &self.chromosomes }
+    pub fn chromosomes(&self)->&[Chromosome]{ &self.chromosomes }
     pub fn fitness(&self)-> u16 { self.fitness }
     pub fn refit(&mut self,new_f:u16){
         self.fitness = new_f;
@@ -63,7 +57,7 @@ impl Gene{
                 new_chromosomes.push(c_other.clone());
             }
         }
-        Gene{ep:self.ep.clone(),method:self.method.clone(),chromosomes:new_chromosomes,fitness:0}
+        Gene{ep:self.ep.clone(),method:self.method,chromosomes:new_chromosomes,fitness:0}
     }
     pub fn renew(&self)->Gene{
         let mut n = self.clone();
@@ -77,7 +71,10 @@ impl Gene{
         for param in &ep.req_res_payloads.req_payload.params{
             chromosomes.push(Chromosome::new(param));
         }
-        Gene{chromosomes,ep:ep.path.clone(),method:ep.methods.greatest().0,fitness:0}
+        for param in &ep.path.params.params{
+            chromosomes.push(Chromosome::new(param));
+        }
+        Gene{chromosomes,ep:ep.path.path_ext.clone(),method:ep.methods.greatest().0,fitness:0}
     }
 }
 #[derive(Debug,Clone,Serialize,Deserialize,Default,PartialEq,Eq)]
@@ -86,12 +83,12 @@ pub struct Genome{
     fitness:u16,
 }
 impl Genome{
-    pub fn genes(&self)->&Vec<Gene>{ &self.genes }
+    pub fn genes(&self)->&[Gene]{ &self.genes }
     pub fn fitness(&self)->u16{ self.fitness }
     pub fn from_genes(genes:Vec<Gene>)->Self{
         Genome{genes,fitness:0}    
     }
-    pub fn evolve(&self,top_genomes:&Vec<Genome>)->Vec<Genome>{
+    pub fn evolve(&self,top_genomes:&[Genome])->Vec<Genome>{
         let mut evolutions = vec![];
         let mut rng = rand::thread_rng();
         for _ in 0..3{
@@ -120,7 +117,7 @@ impl Genome{
             fitness:0
         }
     }
-    pub fn new(eps:&Vec<Endpoint>)->Genome{
+    pub fn new(eps:&[Endpoint])->Genome{
         let mut genes = vec![];
         for ep in eps{
             genes.push(Gene::new(ep));
@@ -131,7 +128,7 @@ impl Genome{
         let (req_res,choises) = attack_flow(base_url,&self.genes).await;
         (Session{token,req_res},choises)
     }
-    pub fn refit(&mut self,anomaly:bool,anomaly_scores:&Vec<u16>){
+    pub fn refit(&mut self,anomaly:bool,anomaly_scores:&[u16]){
         for (i,gene) in self.genes.iter_mut().enumerate(){
             gene.refit(anomaly_scores[i]);
         }

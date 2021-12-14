@@ -1,5 +1,5 @@
 //use digest::{Digest,Session,Group,Endpoint,ReqRes};
-use digest::*;
+use mapper::digest::*;
 use serde::{Serialize,Deserialize};
 
 mod rule_based;
@@ -10,10 +10,10 @@ use rule_based::*;
 fn _detect_group(session:&Session,digest:&Digest)->Option<Group>{
     let eps_path:Vec<&String> = session.req_res.iter().map(|rr| &rr.path).collect();
     for group in digest.groups.clone(){
-        let g_eps_path:Vec<&String> = group.endpoints.iter().map(|e| &e.path).collect();
+        //let g_eps_path:Vec<&String> = group.endpoints.iter().map(|e| &e.path).collect();
         let mut in_group = 0;
         for p in eps_path.iter(){
-            if g_eps_path.contains(&p){
+            if group.endpoints.iter().map(|e| &e.path.path_ext).any(|x| x == *p){
                 in_group+=1;
             } 
         }

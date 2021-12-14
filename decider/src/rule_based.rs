@@ -18,15 +18,15 @@ where T:Clone+Eq+PartialEq+Default+std::hash::Hash{
 }
 fn test_headers(cur:&HashMap<String,String>,other:&HeaderMap)->u16{
     let mut a_s = 0;
-    let header_names:Vec<&String> = other.headers.iter().map(|h|&h.name).collect();
+    //let header_names:Vec<&String> = other.headers.iter().map(|h|&h.name).collect();
     for header in cur.keys(){
-        if !header_names.contains(&header){
+        if !other.headers.iter().map(|h|&h.name).any(|x| x == header){
             a_s+=1;
         }
     }
     a_s
 }
-fn test_payload(cur:&String,other:&PayloadDescriptor)->u16{
+fn test_payload(cur:&str,other:&PayloadDescriptor)->u16{
     let params = conv_json_pairs(cur);
     let mut anomaly_score = 0;
     for param in params{
@@ -37,10 +37,8 @@ fn test_payload(cur:&String,other:&PayloadDescriptor)->u16{
                     if let Ok(n) = param.payload.parse::<f64>(){
                         if n.trunc()!=n && t==&NumType::Integer{
                             anomaly_score+=15;
-                        }else{
-                            if !desc.matches(n as i64){
+                        }else if !desc.matches(n as i64){
                                 anomaly_score+=10;
-                            }
                         }
                     }else{
                         anomaly_score+=20;
@@ -52,7 +50,7 @@ fn test_payload(cur:&String,other:&PayloadDescriptor)->u16{
                     }
                 },
                 ValueDescriptor::Bool=>{
-                    if let Err(_) = param.payload.parse::<bool>(){
+                    if param.payload.parse::<bool>().is_err(){
                         anomaly_score+=20;
                     }
                 },
@@ -78,7 +76,7 @@ pub fn decide_rule_based(digest:&Digest,session:&Session,top_anomaly_score:u16)-
     }else{
         true
     }*/
-    let eps_path:Vec<&String> = digest.eps.iter().map(|e| &e.path).collect();
+    let eps_path:Vec<&String> = digest.eps.iter().map(|e| &e.path.path_ext).collect();
     let mut total_anomaly_score = 0;
     let mut anomaly_scores = vec![];
     let mut cond1 = false;

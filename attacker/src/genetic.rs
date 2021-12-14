@@ -52,13 +52,13 @@ const TOP:u8 = 25;
 impl Population{
     pub fn new(group:&Group,max_members:u16,min_members:u16,top_score:Option<u16>,mutation_rate:u8,cross_rate:u8)->Population{
         let top_score = if let Some(s) = top_score { s } else { u16::MAX };
-        let genomes = vec![Genome::new(&group.endpoints);100];
+        let genomes = (1..min_members).map(|_i| Genome::new(&group.endpoints)).collect::<Vec<Genome>>();
         let mut gene_pool = HashSet::new();
         for genome in genomes.iter(){
             genome.genes().iter().for_each(|gene| {gene_pool.insert(gene.clone());});
         }
         let mut top_genes = HashMap::new();
-        let endpoints:Vec<String> = group.endpoints.iter().map(|ep|ep.path.clone()).collect();
+        let endpoints:Vec<String> = group.endpoints.iter().map(|ep|ep.path.path_ext.clone()).collect();
         for ep in &endpoints{
             top_genes.insert(ep.clone(),HashSet::new());
         }
@@ -142,7 +142,7 @@ fitness score:{}
         let mut genes = vec![];
         let mut rng = rand::thread_rng();
         for val in self.top_genes.values(){
-            let v = val.iter().map(|g| g.clone()).collect::<Vec<Gene>>();
+            let v = val.iter().cloned().collect::<Vec<Gene>>();
             genes.push(v[rng.gen_range(0..v.len())].clone()); 
         }
         genes
@@ -195,9 +195,9 @@ fitness score:{}
     }
     fn select_top(&mut self){
         self.genomes.sort_by_key(|g| g.fitness());
-        let top = self.genomes.iter().rev().take(TOP.into()).map(|g| g.clone()).collect::<Vec<Genome>>();
+        let top = self.genomes.iter().rev().take(TOP.into()).cloned().collect::<Vec<Genome>>();
         self.top_genomes = top;
-        let mut v= self.gene_pool.iter().map(|g| g.clone()).collect::<Vec<Gene>>();
+        let mut v= self.gene_pool.iter().cloned().collect::<Vec<Gene>>();
         v.sort_by_key(|g| g.fitness());
         let top = v.iter().rev();
         let mut t_genes = HashMap::new();

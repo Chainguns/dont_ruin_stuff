@@ -1,4 +1,4 @@
-use digest::*;
+use mapper::digest::*;
 use serde::{Serialize,Deserialize};
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -20,7 +20,7 @@ const FILE:&str = "attacker.json";
 impl Attacker{
     pub fn save(&self)->Result<(),std::io::Error>{
         let mut file = OpenOptions::new().write(true).create(true).open(FILE)?;
-        file.write(serde_json::to_string(&self).unwrap().as_bytes())?;
+        file.write_all(serde_json::to_string(&self).unwrap().as_bytes())?;
         Ok(())
     }
     pub fn load()->Result<Self,Box<dyn std::error::Error>>{
@@ -35,7 +35,7 @@ pub fn prepare(digest:Digest,base_url:String)->Vec<Vec<String>>{
     let mut populations = vec![];
     for group in digest.groups{
         populations.push(Population::new(&group,400,50,None,20,10));
-        groups.push(group.endpoints.iter().map(|e| e.path.clone()).collect::<Vec<String>>());
+        groups.push(group.endpoints.iter().map(|e| e.path.path_ext.clone()).collect::<Vec<String>>());
     }
     let a = Attacker{populations,base_url};
     a.save().unwrap();

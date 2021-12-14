@@ -1,11 +1,11 @@
 use clap::{Arg, App, Error};
-use firecracker::*;
+use blst_cli_app::*;
 use colored::*;
 use attacker::Verbosity;
 
-const VERSION:&'static str = "0.1.0";
-const MAP_FILE:&'static str = "map";
-const DECIDE_FILE:&'static str = "decide";
+const VERSION:&str = "0.1.0";
+const MAP_FILE:&str = "map";
+const DECIDE_FILE:&str = "decide";
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -228,7 +228,7 @@ async fn main() -> Result<(), Error> {
 \\ \\/    __  / /        /\\/   /_/    / / /     /\\__\\/\\_\\/
   /________/ /________/ /__________/ / /_____/ /
   \\.   .___\\/\\.   .___\\/\\.   ._____\\/  \\. .__\\/\n\n");
-        println!("\nFIRECRACKER v{}", VERSION.to_string());
+        println!("\nFIRECRACKER v{}", VERSION);
         println!("\nFor more information try {}", "--help".green());
     }
     Ok(())

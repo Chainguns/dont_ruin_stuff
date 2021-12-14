@@ -4,7 +4,6 @@ use rand::distributions::Alphanumeric;
 use uuid::Uuid;
 use std::collections::HashMap;
 
-
 #[derive(Debug,Clone,Serialize,Deserialize,PartialEq,Eq)]
 pub enum GenMethod{
     FullyInformed,
@@ -21,13 +20,13 @@ fn convert(bits: Vec<u8>) -> i16 {
 fn generate_number_in_range(bits:Vec<u8>,min:i16,max:i16)->i16{
     let c = convert(bits);
     //i16 ti u16 for the ranging thing
-    let conv:u16 = if c>0{
-        let d:u16 = c as u16;
-        d+32767
-    }else if c==0{
-        32767u16
-    }else{
-        (c+32767) as u16
+    let conv:u16 = match c{
+        c if c>0 =>{
+            let d:u16 = c as u16;
+            d+32767
+        },
+        0=>32767u16,
+        _=>(c+32767) as u16,
     };
     //conv div full range mult part range + min
     ((((conv) as f64)/(32767.0*2.0))*(max-min) as f64 +min as f64) as i16
@@ -161,12 +160,12 @@ fn gen_string(method:GenMethod,bits:Vec<u8>,param:StringDescriptor)->String{
 }
 pub fn gen_type(bits:Vec<u8>)->GenMethod{
     let mut b = bits.chunks(bits.len()/2);
-    let bits_first = b.next().unwrap().iter().map(|n| *n).collect::<Vec<u8>>();
-    let bits_second = b.next().unwrap().iter().map(|n| *n).collect::<Vec<u8>>();
+    let bits_first = b.next().unwrap().iter().copied().collect::<Vec<u8>>();
+    let bits_second = b.next().unwrap().iter().copied().collect::<Vec<u8>>();
     if convert(bits_first.clone())>=convert(bits_second.clone()){
         let mut bb = bits_first.chunks(bits_first.len()/2);
-        let b_f = bb.next().unwrap().iter().map(|n| *n).collect::<Vec<u8>>();
-        let b_s = bb.next().unwrap().iter().map(|n| *n).collect::<Vec<u8>>();
+        let b_f = bb.next().unwrap().iter().copied().collect::<Vec<u8>>();
+        let b_s = bb.next().unwrap().iter().copied().collect::<Vec<u8>>();
         if convert(b_f)>=convert(b_s){
             GenMethod::FullyInformed
         }else{
@@ -174,8 +173,8 @@ pub fn gen_type(bits:Vec<u8>)->GenMethod{
         }
     }else{
         let mut bb = bits_second.chunks(bits_first.len()/2);
-        let b_f = bb.next().unwrap().iter().map(|n| *n).collect::<Vec<u8>>();
-        let b_s = bb.next().unwrap().iter().map(|n| *n).collect::<Vec<u8>>();
+        let b_f = bb.next().unwrap().iter().copied().collect::<Vec<u8>>();
+        let b_s = bb.next().unwrap().iter().copied().collect::<Vec<u8>>();
         if convert(b_f)>=convert(b_s){
             GenMethod::RandomInformed
         }else{
@@ -190,74 +189,54 @@ struct Parameter{
     #[serde(skip_serializing)]
     dm:QuePay,
 }
+fn params_to_payload(ep:&str,params:Vec<Parameter>)->(String,String,String){
+    let mut payload = String::from('{');
+    let mut query = String::from('?');
+    let mut path_ext = ep.to_string();
+    for param in params{
+        match param.dm{
+            QuePay::Payload=>payload.push_str(&format!("\"{}\":\"{}\"",param.name,param.value)),
+            QuePay::Query=>query.push_str(&format!("{}={}&",param.name,param.value)),
+            QuePay::Path=>path_ext = path_ext.replace(&format!("{}{}{}",'{',param.name,'}'),&param.value),
+            _=>(),
+        }
+    }
+    path_ext.pop();
+    query.pop();
+    if payload.trim() == "{"{
+        payload = String::new();
+    }else{
+        payload.push('}');
+    }
+    (payload,query,path_ext)
+}
+async fn send_payload_request(method:Method,base_url:&str,ep:&str,params:Vec<Parameter>)->ReqRes{
+    let client = reqwest::Client::new();
+    let method1 = reqwest::Method::from_bytes(method.to_string().as_bytes()).unwrap();
+    let (req_payload,req_query,path) = params_to_payload(ep,params);
+    let res = client.request(method1,&format!("{}{}{}",base_url,path,req_query))
+            .body(req_payload.clone())
+            .send()
+            .await.unwrap();
+    ReqRes{
+        req_headers:HashMap::new(),
+        res_headers:res.headers().iter().map(|(n,v)| (n.to_string(),format!("{:?}",v))).collect(),
+        path,
+        method,
+        status:res.status().as_u16(),
+        req_payload,
+        res_payload:res.text().await.unwrap(),
+        req_query,
+    } 
+}
 async fn send_attack(base_url:&str,eps:Vec<(Method,String,Vec<Parameter>)>)->Vec<ReqRes>{
     let mut rr = vec![];
-    let client = reqwest::Client::new();
     for ep in eps{
-        match ep.0{
-            Method::GET=>{
-                let mut query = String::from("?");
-                for param in ep.2{
-                    if let QuePay::Query=param.dm{
-                        query.push_str(&format!("{}{}",param.name,param.value));
-                    }
-                }
-                query.pop();
-                let res = reqwest::get(&format!("{}{}{}",base_url,ep.1.clone(),query)).await.unwrap();
-                rr.push(ReqRes{
-                    req_headers:HashMap::new(),
-                    res_headers:HashMap::new(),
-                    path:ep.1,
-                    method:Method::GET,
-                    status:res.status().as_u16(),
-                    req_payload:String::new(),
-                    res_payload:res.text().await.unwrap(),
-                    req_query:query,
-                });
-            },
-            Method::POST=>{
-                let payload = serde_json::to_string(&ep.2).unwrap();
-                let res = client.post(&format!("{}{}",base_url,ep.1.clone()))
-                    .body(payload.clone())
-                    .send()
-                    .await.unwrap();
-                rr.push(ReqRes{
-                    req_headers:HashMap::new(),
-                    res_headers:HashMap::new(),
-                    path:ep.1,
-                    method:Method::POST,
-                    status:res.status().as_u16(),
-                    req_payload:payload,
-                    res_payload:res.text().await.unwrap(),
-                    req_query:String::new(),
-                });
-            },
-            Method::PATCH=>{
-                let payload = serde_json::to_string(&ep.2).unwrap();
-                let res = client.patch(&format!("{}{}",base_url,ep.1.clone()))
-                    .body(payload.clone())
-                    .send()
-                    .await.unwrap();
-                rr.push(ReqRes{
-                    req_headers:HashMap::new(),
-                    res_headers:HashMap::new(),
-                    path:ep.1,
-                    method:Method::POST,
-                    status:res.status().as_u16(),
-                    req_payload:payload,
-                    res_payload:res.text().await.unwrap(),
-                    req_query:String::new(),
-                });
-            },
-            _=>{
-                rr.push(ReqRes::default());
-            },
-        }
-
+        rr.push(send_payload_request(ep.0,base_url,&ep.1,ep.2).await);
     }
     rr
 }
-pub async fn attack_flow(base_url:&str,genes:&Vec<Gene>)->(Vec<ReqRes>,Vec<String>){
+pub async fn attack_flow(base_url:&str,genes:&[Gene])->(Vec<ReqRes>,Vec<String>){
     let mut eps = vec![];
     let mut choises =vec![];
     for gene in genes{
@@ -292,7 +271,7 @@ pub async fn attack_flow(base_url:&str,genes:&Vec<Gene>)->(Vec<ReqRes>,Vec<Strin
             params.push(Parameter{
                name:c.param_name.clone(),
                value,
-               dm:c.delivery_method.clone(),
+               dm:c.delivery_method,
             });           
         }
         eps.push((gene.method,gene.ep.clone(),params));
