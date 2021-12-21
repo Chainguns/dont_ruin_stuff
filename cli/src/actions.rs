@@ -322,8 +322,8 @@ pub fn map(logs_file:String, output:String) {
             }
         };
         write_map_file(format!("{}_checkpoint", output), map_string);
-        write_map_file(output, parse_map_file(digest).unwrap_or_else(|_| {print_err("Failed parsing digest into web map"); String::new()}));
-        println!("{}", "Your map is ready, you can upload and view it at https://www.blstsecurity.com/firecracker/Visualizer".green());
+        write_map_file(output.clone(), parse_map_file(digest).unwrap_or_else(|_| {print_err("Failed parsing digest into web map"); String::new()}));
+        println!("{}", format!("Mapping Done! Saved as \"{}.json\", you can upload and view it at https://www.blstsecurity.com/firecracker/Visualizer", output).green());
     } else {
         print_err("Something went wrong while mapping, check the errors above");
     }
@@ -521,7 +521,7 @@ pub fn load(logs_file:String, map_file:String) {
             return;
         }
     };
-    let sessions =get_sessions(&logs);
+    let sessions = get_sessions(&logs);
     if !sessions.is_empty() {
         println!("{}", "Starts mapping...".green());
         d_map.load_vec_session(sessions);
@@ -533,8 +533,8 @@ pub fn load(logs_file:String, map_file:String) {
             }
         };
         write_map_file(format!("{}_checkpoint", map_file), map_string);
-        write_map_file(map_file, parse_map_file(d_map).unwrap_or_else(|_| {print_err("Failed parsing digest into web map"); String::new()}));
-        println!("{}", "Your map is ready, you can upload and view it at https://www.blstsecurity.com/firecracker/Visualizer".green());
+        write_map_file(map_file.clone(), parse_map_file(d_map).unwrap_or_else(|_| {print_err("Failed parsing digest into web map"); String::new()}));
+        println!("{}", format!("Mapping Done! Saved as \"{}.json\", you can upload and view it at https://www.blstsecurity.com/firecracker/Visualizer", map_file).green());
     } else {
         print_err("Something went wrong while mapping, check the errors above");
     }
