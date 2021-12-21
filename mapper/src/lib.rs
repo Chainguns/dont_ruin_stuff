@@ -33,7 +33,7 @@ impl MapDigest for Digest {
         let links_hash = &self.link_hash;
         let mut groups: Vec<Group> = vec![];
         let mut links = vec![];
-        let mut endpoints = HashSet::new();
+        //let mut endpoints = HashSet::new();
         for ep_s in links_hash.keys() {
             let total: u64 = links_hash.get(&ep_s).unwrap().values().sum();
             for (ep_t, amount) in links_hash.get(&ep_s).unwrap().iter() {
@@ -43,12 +43,12 @@ impl MapDigest for Digest {
                         to: ep_t.clone(),
                         strength: *amount,
                     });
-                    endpoints.insert(ep_s.clone());
-                    endpoints.insert(ep_t.clone());
+                    //endpoints.insert(ep_s.clone());
+                    //endpoints.insert(ep_t.clone());
                 }
             }
         }
-        self.eps = endpoints.iter().cloned().collect();
+        //self.eps = endpoints.iter().cloned().collect();
         let mut used_eps = HashSet::new();
         while !links.is_empty() {
             let mut links_new = vec![];
@@ -119,8 +119,6 @@ impl MapEp for Endpoint {
             });
         }
         for (param, payloads) in hash.status_payloads.reqp_map.iter() {
-            println!("{}",hash.path);
-            println!("{}\t\t{:?}",param,payloads);
             let value = check_values_req(payloads);
             req_payload_params.push(ParamDescriptor {
                 from: QuePay::Payload,
@@ -173,14 +171,8 @@ impl MapEp for Endpoint {
         }
     }
 }
-pub trait MapLoad {
-    fn load_session(&mut self, _session: Session);
-    fn load_vec_session(&mut self, _sessions: Vec<Session>);
-    fn load_req_res(&mut self, _req_res: ReqRes);
-    fn load_vec_req_res(&mut self, _req_reses: Vec<ReqRes>);
-}
-impl MapLoad for Digest {
-    fn load_vec_session(&mut self, sessions: Vec<Session>) {
+impl Digest{
+    fn build_paths(sessions:&[Session])->Vec<Path>{
         let mut paths = vec![];
         for s in sessions.iter(){
             let pts:Vec<String> = s.req_res.iter().map(|rr| {
@@ -194,7 +186,10 @@ impl MapLoad for Digest {
             paths.extend(pts)
         }
         let paths1 = first_cycle(paths);
-        let paths = second_cycle(paths1);
+        second_cycle(paths1)
+        //paths
+    }
+    fn load_sessions_to_hash(&mut self,sessions:&[Session]){
         let mut paths_hash = HashMap::new();
         for session in sessions.iter() {
             if session.req_res.is_empty(){
@@ -215,11 +210,13 @@ impl MapLoad for Digest {
                 }
             }
         }
-        let eps = self.turn_hash(paths);
+        self.path_hash = paths_hash;
+    }
+    fn build_links(eps:&[Endpoint],sessions:&[Session])->Vec<Link>{
         let mut links = vec![];
         for session in sessions {
             for i in 0..(session.req_res.len() - 1) {
-                for j in (i+1)..session.req_res.len(){
+                /*for j in (i+1)..session.req_res.len(){
                     let path1 = to_ext(session.req_res[i].path.clone());
                     //HAS TO BE ONE!!!!!!
                     let pos1 = eps.iter().position(|ep| ep.path.path_ext==path1).unwrap();
@@ -230,57 +227,38 @@ impl MapLoad for Digest {
                         from: eps[pos1].clone(),
                         to: eps[pos2].clone(),
                     });
-                }
-            }
-        }
-        self.link_hash.load_data(links);
-        self.create_map();
-        self.path_hash = paths_hash;
-    }
-    fn load_session(&mut self, _session: Session) {}
-    /*
-    fn load_session(&mut self, session: Session) {
-        if session.req_res.is_empty(){
-            return;
-        }
-        for i in 0..(session.req_res.len() - 1) {
-            let mut found = false;
-            for ep_hash in &mut self.ep_hash {
-                if ep_hash.path == session.req_res[i].path {
-                    ep_hash.load(&session.req_res[i]);
-                    found = true;
-                }
-            }
-            if !found  {
-                let mut ep1 = EndpointHash::new(session.req_res[i].path.clone());
-                ep1.load(&session.req_res[i]);
-                self.ep_hash.push(ep1);
-            }
-        }
-        let eps = self.turn_hash();
-        let mut links = vec![];
-        for i in 0..(session.req_res.len() - 1) {
-            //should be one!!!
-            let index = eps
-                .iter()
-                .position(|ep| ep.path.path_ext == to_ext(session.req_res[i].path))
-                .unwrap();
-            let from = eps[index].clone();
-            for j in (i + 1)..(session.req_res.len() - 1) {
-                let index = eps
-                    .iter()
-                    .position(|ep| ep.path.path_ext == to_ext(session.req_res[j].path))
-                    .unwrap();
-                let to = eps[index].clone();
+                }*/
+                let path1 = to_ext(session.req_res[i].path.clone());
+                //HAS TO BE ONE!!!!!!
+                let pos1 = eps.iter().position(|ep| ep.path.path_ext==path1).unwrap();
+                let path2 = to_ext(session.req_res[i+1].path.clone());
+                //HAS TO BE ONE!!!!!!
+                let pos2 = eps.iter().position(|ep| ep.path.path_ext==path2).unwrap();
                 links.push(Link {
-                    from: from.clone(),
-                    to,
+                    from: eps[pos1].clone(),
+                    to: eps[pos2].clone(),
                 });
             }
         }
+        links
+    }
+}
+pub trait MapLoad {
+    fn load_session(&mut self, _session: Session);
+    fn load_vec_session(&mut self, _sessions: Vec<Session>);
+    fn load_req_res(&mut self, _req_res: ReqRes);
+    fn load_vec_req_res(&mut self, _req_reses: Vec<ReqRes>);
+}
+impl MapLoad for Digest {
+    fn load_vec_session(&mut self, sessions: Vec<Session>) {
+        let paths = Self::build_paths(&sessions);
+        self.load_sessions_to_hash(&sessions);
+        self.eps = self.turn_hash(paths);
+        let links = Self::build_links(&self.eps,&sessions);
         self.link_hash.load_data(links);
         self.create_map();
-    }*/
+    }
+    fn load_session(&mut self, _session: Session) {}
     fn load_req_res(&mut self, _req_res: ReqRes) {}
     fn load_vec_req_res(&mut self, _req_reses: Vec<ReqRes>) {}
 }
