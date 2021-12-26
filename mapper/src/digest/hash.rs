@@ -13,10 +13,7 @@ pub struct LinksHash {
 }
 impl LinksHash {
     pub fn get(&self, val: &Endpoint) -> Option<HashMap<Endpoint, u64>> {
-        self.links
-            .iter()
-            .position(|l| &l.from == val)
-            .map(|pos| self.links[pos].to.clone())
+        self.links.iter().position(|l| &l.from == val).map(|pos| self.links[pos].to.clone())
     }
     pub fn keys(&self) -> Vec<Endpoint> {
         self.links
@@ -57,31 +54,166 @@ pub struct LinkHashRef{
 pub struct LinksHashRef{
     links:Vec<LinkHashRef>,
 }*/
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub enum QuePay {
-    Headers,
-    Path,
-    Query,
-    Payload,
-    Response,
+#[derive(Copy,Debug, Clone, Serialize, Deserialize, Eq, PartialEq,Hash)]
+pub enum AuthHash{
+    None,
+    Basic,
+    Bearer,
+    Digest,
+    Hawk,
+    AWS,
+    //Negotiate,
+    Other,
 }
-impl Default for QuePay {
+impl Default for AuthHash {
     fn default() -> Self {
-        Self::Payload
+        Self::None
+    }
+}
+impl AuthHash{
+    pub fn from(s:String)->Self{
+        let s = s.trim().to_lowercase();
+        if s.starts_with("bearer"){
+            AuthHash::Bearer
+        }else if s.starts_with("basic"){
+            AuthHash::Basic
+        }else if s.starts_with("digest"){
+            AuthHash::Digest
+        }else if s.starts_with("hawk"){
+            AuthHash::Hawk
+        }else if s.starts_with("aws"){
+            AuthHash::AWS
+        }else{
+            AuthHash::Other
+        }
+    }
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum HeaderHash{
+    //General
+    #[serde(rename = "user-agent")]
+    UserAgent(HashSet<String>),
+    #[serde(rename = "content_length")]
+    ContentLength(HashSet<u32>),
+    #[serde(rename = "content_type")]
+    ContentType(HashSet<String>),
+    #[serde(rename = "host")]
+    Host(HashSet<String>),
+    #[serde(rename = "csp")]
+    CSP(HashSet<String>),
+    //Auth
+    #[serde(rename = "authorization")]
+    AuthHash(HashSet<AuthHash>),
+    #[serde(rename = "jwt")]
+    JWT,
+    //Other - keeps only the header name
+    Other(HashSet<String>),
+}
+impl HeaderHash{
+    pub fn name(&self)->String{
+        match self{
+            Self::UserAgent(_)=>String::from("user-agent"),
+            Self::ContentLength(_)=>String::from("content-length"),
+            Self::ContentType(_)=>String::from("content-type"),
+            Self::Host(_)=>String::from("host"),
+            Self::CSP(_)=>String::from("csp"),
+            Self::JWT=>String::from("jwt"),
+            Self::AuthHash(_)=>String::from("authorization"),
+            _=>String::from("other"),
+        }
+    }
+    pub fn is_other(name:&str)->bool{
+        let v1 = vec!["user-agent","content-length","content-type","host","csp","jwt","authorization"];
+        !v1.contains(&name.to_lowercase().trim()) 
+    }
+    pub fn insert(&mut self,val:String){
+        match self{
+            Self::UserAgent(v)=>v.insert(val),
+            Self::ContentLength(v)=>v.insert(val.parse::<u32>().unwrap()),
+            Self::ContentType(v)=>v.insert(val),
+            Self::Host(v)=>v.insert(val),
+            Self::CSP(v)=>v.insert(val),
+            Self::JWT=>true,
+            Self::AuthHash(v)=>v.insert(AuthHash::from(val)),
+            Self::Other(v)=>v.insert(val),
+        };
+        ()
+    }
+    pub fn from(header:Header)->Self{
+        match header.name.to_lowercase().trim(){
+            "user-agent"=>Self::UserAgent(HashSet::from([header.value])),
+            "content-length"=>Self::ContentLength(HashSet::from([header.value.parse::<u32>().unwrap()])),
+            "content-type"=>Self::ContentType(HashSet::from([header.value])),
+            "host"=>Self::Host(HashSet::from([header.value])),
+            "csp"=>Self::CSP(HashSet::from([header.value])),
+            "jwt"=>Self::JWT,
+            "authorization"=>Self::AuthHash(HashSet::from([AuthHash::from(header.value)])),
+            _=>Self::Other(HashSet::from([header.name])),
+        }
+    }
+    pub fn get_val(&self)->EpHeaderValue{
+        match self{
+            Self::UserAgent(_)=>EpHeaderValue::String(String::from("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36")),
+            Self::ContentLength(v)=>{
+                EpHeaderValue::Payload(ParamDescriptor{
+                    from:QuePay::Headers,
+                    name:String::from("content-length"),
+                    value:search_for_patterns(v.iter().map(|vv| vv.to_string()).collect::<HashSet<String>>().iter().collect()),
+                })
+            },
+            Self::ContentType(v)=>{
+                EpHeaderValue::Payload(ParamDescriptor{
+                    from:QuePay::Headers,
+                    name:String::from("content-type"),
+                    value:search_for_patterns(v.iter().collect()),
+                })
+            },
+            Self::Host(v)=>{
+                EpHeaderValue::Payload(ParamDescriptor{
+                    from:QuePay::Headers,
+                    name:String::from("host"),
+                    value:search_for_patterns(v.iter().collect()),
+                })
+            },
+            Self::CSP(v)=>{
+                EpHeaderValue::Payload(ParamDescriptor{
+                    from:QuePay::Headers,
+                    name:String::from("csp"),
+                    value:search_for_patterns(v.iter().collect()),
+                })
+            },
+            Self::JWT=>EpHeaderValue::AuthToken,
+            Self::AuthHash(_)=>EpHeaderValue::AuthToken,
+            Self::Other(_)=>EpHeaderValue::default(),
+        }
+    }
+}
+pub type HeadersHash = Vec<HeaderHash>;
+pub fn add_to_headers_hash(headers_hash:&mut HeadersHash,header:Header){
+    if let Some(pos) = headers_hash.iter().position(|h| h.name() == header.name){
+        headers_hash[pos].insert(header.value);
+    }else if HeaderHash::is_other(&header.name){
+        if let Some(pos) = headers_hash.iter().position(|h| h.name() == *"other"){
+            headers_hash[pos].insert(header.name);
+        }else{
+            headers_hash.push(HeaderHash::Other(HashSet::from([header.name])));
+        }
+    }else {
+        headers_hash.push(HeaderHash::from(header));
     }
 }
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EndpointHash {
-    pub path: String, //Path,
+    pub path: String,//Path,
     #[serde_as(as = "Vec<(_, _)>")]
     pub dm: HashMap<QuePay, u32>,
     #[serde_as(as = "Vec<(_, _)>")]
     pub methods: HashMap<Method, u32>,
-    pub req_headers: HashMap<String, HashMap<String, u32>>,
-    pub res_headers: HashMap<String, HashMap<String, u32>>,
+    pub req_headers: HeadersHash,//HashMap<String, HashMap<String, u32>>,
+    pub res_headers: HeadersHash,//HashMap<String, HashMap<String, u32>>,
     pub status_payloads: ParamPayloadH,
-    pub queries: ParamPayloadH,
+    pub queries: ParamPayloadH, 
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct ParamPayload {
@@ -163,18 +295,8 @@ impl EndpointHash {
         } else {
             self.res_headers.clone()
         };
-        for h in headers.keys() {
-            let v2 = headers.get(h).unwrap().to_string();
-            if let Some(v) = taker.get_mut(h) {
-                // if v2 is an entry in v then it will take it's value, if not it will insert it
-                // with the value of one.
-                let v3 = v.entry(v2).or_insert(0);
-                *v3 += 1;
-            } else {
-                let mut h1 = HashMap::new();
-                h1.insert(v2, 1);
-                taker.insert(h.to_string(), h1);
-            }
+        for (name,value) in headers{
+            add_to_headers_hash(&mut taker,Header::from(name,value));
         }
         if t {
             self.req_headers = taker
@@ -185,8 +307,8 @@ impl EndpointHash {
     pub fn load(&mut self, req_res: &ReqRes) {
         let mtd = self.methods.entry(req_res.method).or_insert(0);
         *mtd += 1;
-        //self.add_headers(&req_res.req_headers, true);
-        //self.add_headers(&req_res.res_headers, false);
+        self.add_headers(&req_res.req_headers, true);
+        self.add_headers(&req_res.res_headers, false);
         let query_pairs: ParamPayloadHash = conv_json_pairs(&req_res.req_query); //Url::parse(&req_res.path).unwrap().query_pairs().into_owned().map(|p| ParamPayload{param:p.0,payload:p.1}).collect();
         let res_pairs: ParamPayloadHash = conv_json_pairs(&req_res.res_payload);
         self.add_pp(&query_pairs, req_res.status, &res_pairs, true);

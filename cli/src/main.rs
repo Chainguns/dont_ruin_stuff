@@ -1,8 +1,8 @@
-
 use clap::{Arg, App, Error};
 use firecracker::*;
 use colored::*;
-use attacker::Verbosity;
+use attacker::{Verbosity,Authorization};
+use mapper::digest::Header;
 
 const VERSION:&str = "0.2.0";
 const MAP_FILE:&str = "map";
@@ -89,14 +89,37 @@ async fn main() -> Result<(), Error> {
                 .default_value("1")
                 .help("Sets the max generations number")
                 .takes_value(true))
+            .arg(Arg::with_name("HEADER")
+                .short("h")
+                .long("header")
+                .value_name("header")
+                .default_value("")
+                .help("Adds the header to the default request headers of the attacker")
+                .takes_value(true))
             .arg(Arg::with_name("VERBOSITY")
                 .short("v")
                 .long("verbosity")
                 .value_name("Verboseity level")
                 .default_value("1")
                 .help("Sets the level of verbosity, 0 - Max, 1 - Default, 2 - Basic, 3 - None")
-                .takes_value(true)))
-
+                .takes_value(true))
+            .subcommand(App::new("auth")                                   
+                .about("Adds an auth token to the Attacker's requests, for auth based apps")
+                .arg(Arg::with_name("TYPE")
+                    .short("t")
+                    .long("type")
+                    .value_name("authorization type")
+                    .help("Sets the authorization type, 0 - Basic, 1 - Bearer, 2 - JWT, 3 - API Key")
+                    .required(true)
+                    .takes_value(true))
+                .arg(Arg::with_name("TOKEN")
+                    .short("tkn")
+                    .long("token")
+                    .value_name("authorization token value")
+                    .help("Sets the authorization token(if it's of type basic then username:password)")
+                    .required(true)
+                    .takes_value(true))
+                ))
         .subcommand(App::new("decide")
             .about("Decide whether or not a log file contains anomalies")
             .arg(Arg::with_name("LOG_FILE")
@@ -201,7 +224,30 @@ async fn main() -> Result<(), Error> {
             },
             None => Verbosity::Default,
         };
-        attack_domain(m, o, p, g, v).await;
+        let h = match vars.value_of("HEADER") {
+            Some(h) =>{
+                let split1 = h.split(":").collect::<Vec<&str>>();
+                vec![Header::from(split1[0],split1[1])]
+            },
+            None => vec![],
+        };
+        let a = match vars.subcommand_matches("auth"){
+            Some(vars) =>{
+                match vars.value_of("TYPE"){
+                    Some(v)=>{
+                        match vars.value_of("TOKEN"){
+                            Some(v2)=>{
+                                Authorization::from_parts(&v,v2.to_string())
+                            },
+                            None=>Authorization::None,
+                        }
+                    },
+                    None=>Authorization::None,
+                }
+            },
+            None=>Authorization::None,
+        };
+        attack_domain(m, o, p, g, v, h, a).await;
     }
     else if let Some(vars) = matches.subcommand_matches("decide") {
         if let Some(d) = vars.value_of("LOG_FILE") {

@@ -15,6 +15,7 @@ dependencies = [
 name = "attacker"
 version = "0.2.0"
 dependencies = [
+ "base64",
  "decider",
  "mapper",
  "rand",
