@@ -4,7 +4,7 @@ use colored::*;
 use firecracker::*;
 use mapper::digest::Header;
 
-const VERSION: &str = "0.2.0";
+const VERSION: &str = "0.3.0";
 const MAP_FILE: &str = "map";
 const DECIDE_FILE: &str = "decide";
 
