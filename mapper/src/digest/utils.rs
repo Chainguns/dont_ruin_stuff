@@ -26,14 +26,24 @@ impl Header{
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub enum StrNum{
+    String(String),
+    Number(u32),
+}
+impl Default for StrNum {
+    fn default() -> Self {
+        Self::String(String::new())
+    }
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum EpHeaderValue{
     Payload(ParamDescriptor),
-    String(String),
+    Const(StrNum),
     AuthToken,
 }
 impl Default for EpHeaderValue {
     fn default() -> Self {
-        Self::String(String::new())
+        Self::Const(StrNum::default())
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]

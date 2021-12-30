@@ -92,15 +92,15 @@ impl AuthHash{
 pub enum HeaderHash{
     //General
     #[serde(rename = "user-agent")]
-    UserAgent(HashSet<String>),
+    UserAgent(HashMap<String,u32>),
     #[serde(rename = "content_length")]
-    ContentLength(HashSet<u32>),
+    ContentLength(HashMap<u32,u32>),
     #[serde(rename = "content_type")]
-    ContentType(HashSet<String>),
+    ContentType(HashMap<String,u32>),
     #[serde(rename = "host")]
-    Host(HashSet<String>),
+    Host(HashMap<String,u32>),
     #[serde(rename = "csp")]
-    CSP(HashSet<String>),
+    CSP(HashMap<String,u32>),
     //Auth
     #[serde(rename = "authorization")]
     AuthHash(HashSet<AuthHash>),
@@ -108,6 +108,11 @@ pub enum HeaderHash{
     JWT,
     //Other - keeps only the header name
     Other(HashSet<String>),
+}
+fn entry_inc<T>(map:&mut HashMap<T,u32>,val:T)
+where T:Eq+Hash{
+    let c = map.entry(val).or_insert(0);
+    *c+=1;
 }
 impl HeaderHash{
     pub fn name(&self)->String{
@@ -128,24 +133,23 @@ impl HeaderHash{
     }
     pub fn insert(&mut self,val:String){
         match self{
-            Self::UserAgent(v)=>v.insert(val),
-            Self::ContentLength(v)=>v.insert(val.parse::<u32>().unwrap()),
-            Self::ContentType(v)=>v.insert(val),
-            Self::Host(v)=>v.insert(val),
-            Self::CSP(v)=>v.insert(val),
-            Self::JWT=>true,
-            Self::AuthHash(v)=>v.insert(AuthHash::from(val)),
-            Self::Other(v)=>v.insert(val),
+            Self::UserAgent(v)=>entry_inc(v,val),
+            Self::ContentLength(v)=>entry_inc(v,val.parse::<u32>().unwrap()),
+            Self::ContentType(v)=>entry_inc(v,val),
+            Self::Host(v)=>entry_inc(v,val),
+            Self::CSP(v)=>entry_inc(v,val),
+            Self::JWT=>(),
+            Self::AuthHash(v)=>{v.insert(AuthHash::from(val));},
+            Self::Other(v)=>{v.insert(val);},
         };
-        ()
     }
     pub fn from(header:Header)->Self{
         match header.name.to_lowercase().trim(){
-            "user-agent"=>Self::UserAgent(HashSet::from([header.value])),
-            "content-length"=>Self::ContentLength(HashSet::from([header.value.parse::<u32>().unwrap()])),
-            "content-type"=>Self::ContentType(HashSet::from([header.value])),
-            "host"=>Self::Host(HashSet::from([header.value])),
-            "csp"=>Self::CSP(HashSet::from([header.value])),
+            "user-agent"=>Self::UserAgent(HashMap::from([(header.value,1)])),
+            "content-length"=>Self::ContentLength(HashMap::from([(header.value.parse::<u32>().unwrap(),1)])),
+            "content-type"=>Self::ContentType(HashMap::from([(header.value,1)])),
+            "host"=>Self::Host(HashMap::from([(header.value,1)])),
+            "csp"=>Self::CSP(HashMap::from([(header.value,1)])),
             "jwt"=>Self::JWT,
             "authorization"=>Self::AuthHash(HashSet::from([AuthHash::from(header.value)])),
             _=>Self::Other(HashSet::from([header.name])),
@@ -153,35 +157,11 @@ impl HeaderHash{
     }
     pub fn get_val(&self)->EpHeaderValue{
         match self{
-            Self::UserAgent(_)=>EpHeaderValue::String(String::from("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36")),
-            Self::ContentLength(v)=>{
-                EpHeaderValue::Payload(ParamDescriptor{
-                    from:QuePay::Headers,
-                    name:String::from("content-length"),
-                    value:search_for_patterns(v.iter().map(|vv| vv.to_string()).collect::<HashSet<String>>().iter().collect()),
-                })
-            },
-            Self::ContentType(v)=>{
-                EpHeaderValue::Payload(ParamDescriptor{
-                    from:QuePay::Headers,
-                    name:String::from("content-type"),
-                    value:search_for_patterns(v.iter().collect()),
-                })
-            },
-            Self::Host(v)=>{
-                EpHeaderValue::Payload(ParamDescriptor{
-                    from:QuePay::Headers,
-                    name:String::from("host"),
-                    value:search_for_patterns(v.iter().collect()),
-                })
-            },
-            Self::CSP(v)=>{
-                EpHeaderValue::Payload(ParamDescriptor{
-                    from:QuePay::Headers,
-                    name:String::from("csp"),
-                    value:search_for_patterns(v.iter().collect()),
-                })
-            },
+            Self::UserAgent(v)=>EpHeaderValue::Const(StrNum::String(Split::from_hashmap(v).greatest().0)),
+            Self::ContentLength(v)=>EpHeaderValue::Const(StrNum::Number(Split::from_hashmap(v).greatest().0)),
+            Self::ContentType(v)=>EpHeaderValue::Const(StrNum::String(Split::from_hashmap(v).greatest().0)),
+            Self::Host(v)=>EpHeaderValue::Const(StrNum::String(Split::from_hashmap(v).greatest().0)),
+            Self::CSP(v)=>EpHeaderValue::Const(StrNum::String(Split::from_hashmap(v).greatest().0)),
             Self::JWT=>EpHeaderValue::AuthToken,
             Self::AuthHash(_)=>EpHeaderValue::AuthToken,
             Self::Other(_)=>EpHeaderValue::default(),

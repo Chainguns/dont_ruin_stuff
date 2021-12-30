@@ -12,48 +12,45 @@ pub enum Authorization{
 impl Authorization{
     pub fn from_parts(tp:&str,value:String)->Self{
         match tp{
-            "Basic"=>{
+            "0"=>{
                 let vals:Vec<&str> = value.split(":").collect();
                 Self::Authorization(Auth::Basic(vals[0].to_string(),vals[1].to_string()))
             },
-            "Bearer"=>Self::Authorization(Auth::Bearer(value)),
-            "JWT"=>Self::JWT(value),
-            "API-Key"=>Self::APIKey(value),
+            "1"=>Self::Authorization(Auth::Bearer(value)),
+            "2"=>Self::JWT(value),
+            "3"=>Self::APIKey(value),
             _=>Self::None,
             
         }
     }
-    pub fn get_header(&self)->Header{
+    pub fn get_header(&self)->Option<Header>{
         match self{
            Self::Authorization(Auth::Basic(username,password))=>{
-                Header{
+                Some(Header{
                     name:String::from("Authorization"),
                     value:format!("Basic {}",encode(format!("{}:{}",username,password))),
-                }
+                })
            },
            Self::Authorization(Auth::Bearer(token))=>{
-                Header{
+                Some(Header{
                     name:String::from("Authorization"),
                     value:format!("Bearer {}",token),
-                }
+                })
            },
            Self::JWT(token)=>{
-                Header{
+                Some(Header{
                     name:String::from("jwt"),
                     value:token.to_string(),
-                }
+                })
            },
            Self::APIKey(key)=>{
-                Header{
+                Some(Header{
                     name:String::from("X-API-Key"),
                     value:key.to_string(),
-                }
+                })
            },
            _=>{
-               Header{
-                   name:String::new(),
-                   value:String::new(),
-               }
+               None
            },
         }
     }
@@ -83,7 +80,7 @@ impl Default for Auth{
 }
 /*
 impl Auth{
-    pub fn execute(&self){
+    pub fn authenticate(&self){
         match self{
            Self::Basic(username,password)=>(),
            Self::Bearer(token)=>(),

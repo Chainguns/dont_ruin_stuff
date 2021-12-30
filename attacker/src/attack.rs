@@ -216,16 +216,19 @@ fn params_to_payload(ep:&str,params:Vec<Parameter>)->(String,String,String,Vec<H
 }
 fn get_headers(custom_headers:&[Header],payload_headers:Vec<Header>,auth:&Authorization)->HashMap<String,String>{
     let mut new:Vec<Header> = payload_headers.iter().chain(custom_headers).cloned().collect();
-    new.push(auth.get_header());
+    if let Some(a) = auth.get_header(){
+        new.push(a);
+    }
     new.iter().map(|h| (h.name.clone(),h.value.clone())).collect()
 }
 async fn send_payload_request(method:Method,base_url:&str,ep:&str,params:Vec<Parameter>,headers:&[Header],auth:&Authorization)->ReqRes{
     let client = reqwest::Client::new();
     let method1 = reqwest::Method::from_bytes(method.to_string().as_bytes()).unwrap();
     let (req_payload,req_query,path,headers1) = params_to_payload(ep,params);
+    let h = get_headers(headers,headers1,auth);
     let req = client.request(method1,&format!("{}{}{}",base_url,path,req_query))
             .body(req_payload.clone())
-            .headers((&get_headers(headers,headers1,auth)).try_into().expect("not valid headers"))
+            .headers((&h).try_into().expect("not valid headers"))
             .build().unwrap();
     let req_headers = req.headers().iter().map(|(n,v)| (n.to_string(),format!("{:?}",v))).collect();
     let res = client.execute(req).await.unwrap();

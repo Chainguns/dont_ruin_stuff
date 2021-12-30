@@ -180,7 +180,7 @@ fitness score:{}
                         acc+=acc1;
                     }
                 },
-                Verbosity::Default=>println!("session number:{}\nchoies:{:?}",i,choises),
+                Verbosity::Default=>println!("session number:{}\nchoises:{:?}",i,choises),
                 Verbosity::Basic=>println!("session number:{}",i),
                 Verbosity::None=>(),
             }
