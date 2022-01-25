@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use uuid::{Uuid, Version};
 mod patterns;
 use patterns::*;
-mod path;
+pub mod path;
 use path::*;
 
 pub fn check_values_req(values: &HashSet<String>) -> ValueDescriptor {
@@ -164,18 +164,17 @@ impl MapEp for Endpoint {
 }
 impl Digest{
     fn build_paths(sessions:&[Session])->Vec<Path>{
-        let mut paths = vec![];
-        for s in sessions.iter(){
-            let pts:Vec<String> = s.req_res.iter().map(|rr| {
-                //if rr.status != 404{
+        let paths = sessions.iter().map(|s|{
+            let pts:Vec<String> = s.req_res.iter().filter_map(|rr| {
+                if rr.status != 404{
                     let end_bytes = rr.path.find('?').unwrap_or_else(|| rr.path.len());
-                    rr.path[..end_bytes].to_string()
-                //}else{
-                  //  String::new()
-                //}
+                    Some(rr.path[..end_bytes].to_string())
+                }else{
+                    None
+                }
             }).collect();
-            paths.extend(pts)
-        }
+            pts
+        }).flatten().collect();
         let paths1 = first_cycle(paths);
         second_cycle(paths1)
         //paths

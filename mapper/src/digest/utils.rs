@@ -9,6 +9,7 @@ pub enum QuePay {
     Query,
     Payload,
     Response,
+    None
 }
 impl Default for QuePay {
     fn default() -> Self {
@@ -142,6 +143,8 @@ pub enum Method {
     PATCH,
     PUT,
     DELETE,
+    HEAD,
+    TRACE,
     Other,
 }
 impl Default for Method {
@@ -158,6 +161,8 @@ impl Method {
             "PATCH"=>Method::PATCH,
             "DELETE"=>Method::DELETE,
             "OPTIONS"=>Method::OPTIONS,
+            "HEAD"=>Method::HEAD,
+            "TRACE"=>Method::TRACE,
             _=>Method::Other,
         }
     }
@@ -171,6 +176,8 @@ impl std::fmt::Display for Method {
             Self::OPTIONS=>write!(f, "OPTIONS"),
             Self::PATCH=>write!(f, "PATCH"),
             Self::DELETE=>write!(f, "DELETE"),
+            Self::HEAD=>write!(f, "HEAD"),
+            Self::TRACE=>write!(f, "TRACE"),
             Self::Other=>write!(f, "other"),
         }
     }

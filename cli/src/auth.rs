@@ -42,9 +42,8 @@ pub async fn get_access(action: &str) -> bool {
         .body(Body::from(format!(
             "{{\"client_token\":\"{}\",\"action\":\"{}\"}}",
             token, action
-        )))
+        ).replace("\n","")))
         .unwrap();
-
     let r = match client.request(req).await {
         Ok(r) => r,
         Err(_) => {
