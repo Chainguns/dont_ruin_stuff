@@ -40,7 +40,7 @@ pub fn add_token(token: String) -> bool {
 }
 
 pub fn run_swagger(file:&str,verbosity:u8,output_file:&str){                                                                             
-    if !executor::block_on(get_access("Map")) {
+    if !executor::block_on(get_access("Swagger")) {
         return;
     }
     let swagger_str = match read_file(file){                                                                                             
