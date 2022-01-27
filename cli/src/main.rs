@@ -294,7 +294,7 @@ async fn main() -> Result<(), Error> {
   /________/ /________/ /__________/ / /_____/ /
   \\.   .___\\/\\.   .___\\/\\.   ._____\\/  \\. .__\\/\n\n"
         );
-        println!("\nFIRECRACKER v{}", VERSION);
+        println!("\nCHERRYBOMB v{}", VERSION);
         println!("\nFor more information try {}", "--help".green());
     }
     Ok(())
