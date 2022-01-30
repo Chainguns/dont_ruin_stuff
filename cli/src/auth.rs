@@ -12,7 +12,7 @@ pub async fn get_access(action: &str) -> bool {
                 "{}",
                 "file \"token.txt\" not found, make sure that you have it in this directory".red()
             );
-            println!("{}", "to get your token go to your user details dashboard at https://www.blstsecurity.com/firecracker/UserDetails".purple().bold());
+            println!("{}", "to get your token go to your user details dashboard at https://www.blstsecurity.com/cherrybomb/UserDetails".purple().bold());
             return false;
         }
     };
@@ -24,7 +24,7 @@ pub async fn get_access(action: &str) -> bool {
                 "{}",
                 "could not read the data from \"token.txt\", make sure the data is valid".red()
             );
-            println!("{}", "to get your token go to your user details dashboard at https://www.blstsecurity.com/firecracker/UserDetails".purple().bold());
+            println!("{}", "to get your token go to your user details dashboard at https://www.blstsecurity.com/cherrybomb/UserDetails".purple().bold());
             return false;
         }
     }
@@ -38,7 +38,7 @@ pub async fn get_access(action: &str) -> bool {
     let client = Client::builder().build(connector);
     let req = Request::builder()
         .method(Method::POST)
-        .uri("https://firecracker.blstsecurity.com/auth")
+        .uri("https://cherrybomb.blstsecurity.com/auth")
         .body(Body::from(format!(
             "{{\"client_token\":\"{}\",\"action\":\"{}\"}}",
             token, action
@@ -56,7 +56,7 @@ pub async fn get_access(action: &str) -> bool {
         Ok(j) => j,
         Err(_) => {
             println!("{}", "client_token not valid".red());
-            println!("{}", "to get your token go to your user details dashboard at https://www.blstsecurity.com/firecracker/UserDetails".purple().bold());
+            println!("{}", "to get your token go to your user details dashboard at https://www.blstsecurity.com/cherrybomb/UserDetails".purple().bold());
             return false;
         }
     };
