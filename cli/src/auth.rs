@@ -3,18 +3,19 @@ use hyper::{body, Body, Client, Method, Request};
 use hyper_rustls::HttpsConnectorBuilder;
 use std::fs::File;
 use std::io::{Read,Write};
-use std::env::set_current_dir;
+use std::path::Path;
 
 const TOKEN_FILE:&str = ".cherrybomb/token.txt";
-async fn sign_up()->bool{
+async fn sign_up(filename:&Path)->bool{
+    /*
     match set_current_dir(dirs::home_dir().unwrap()){
         Ok(_)=>(),
         Err(e)=>{
             println!("{:?}",e);
             panic!("Could not generate a CLI token, please contact BLST at support@blstsecurity.com");
         }
-    };
-    let mut file = match File::create(TOKEN_FILE) {
+    };*/
+    let mut file = match File::create(filename) {
         Ok(f) => f,
         Err(e) => {
             println!("{:?}",e);
@@ -49,12 +50,15 @@ async fn sign_up()->bool{
     }
     true
 }
-pub async fn get_access(action: &str) -> bool {
-    let mut file = match File::open(TOKEN_FILE) {
+async fn get_token()->String{
+    let mut filename =  dirs::home_dir().unwrap();
+    filename.push(TOKEN_FILE);
+    let mut file = match File::open(&filename) {
         Ok(f) => f,
         Err(_) => {
-            if sign_up().await{
-            match File::open(TOKEN_FILE) {
+            println!("no token?");
+            if sign_up(&filename).await{
+            match File::open(&filename) {
                 Ok(f)=>f,
                 Err(_)=>{
                     panic!("Could not validate the CLI token, please contact BLST at support@blstsecurity.com");
@@ -86,6 +90,10 @@ pub async fn get_access(action: &str) -> bool {
             println!("{}", "to get your token go to your user details dashboard at https://www.blstsecurity.com/cherrybomb/UserDetails".purple().bold());*/
         }
     }
+    token
+}
+pub async fn get_access(action: &str) -> bool {
+    let token = get_token().await;
     let connector = HttpsConnectorBuilder::new()
         .with_native_roots()
         .https_only()
