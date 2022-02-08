@@ -1,3 +1,4 @@
+/cli
 /target
 Cargo.lock
 *.sw*
