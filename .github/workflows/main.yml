@@ -51,9 +51,9 @@ jobs:
 
         - uses: actions-rs/cargo@v1
           with:
-             use-cross: false
+             use-cross: true
              command: build
-             args: --release --target=${{matrix.target}}
+             args: --release --all-features --target=${{matrix.target}}
         - name: Prep_Bootstrap
           run: cp ./target/${{matrix.target}}/release/bootstrap ./bootstrap
         - name: Rename File to Upload gnu
@@ -143,9 +143,9 @@ jobs:
 
         - uses: actions-rs/cargo@v1
           with:
-             use-cross: false
+             use-cross: true
              command: build
-             args: --release --target=${{matrix.target}}
+             args: --release --all-features --target=${{matrix.target}}
         - name: Prep_Bootstrap
           run: cp ./target/${{matrix.target}}/release/bootstrap ./bootstrap
         - name: Rename File to Upload mac x86_64
