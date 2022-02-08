@@ -53,6 +53,8 @@ jobs:
              use-cross: false
              command: build
              args: --release --all-features --target=${{matrix.target}}
+        - name: kill me
+          run: ls -ll
         - name: Prep_Bootstrap
           run: cp ./target/${{matrix.target}}/release/bootstrap ./bootstrap
         - name: Rename File to Upload gnu
@@ -146,6 +148,8 @@ jobs:
              use-cross: false
              command: build
              args: --release --all-features --target=${{matrix.target}}
+        - name: kill me
+          run: ls -ll
         - name: Prep_Bootstrap
           run: cp ./target/${{matrix.target}}/release/bootstrap ./bootstrap
         - name: Rename File to Upload mac x86_64
