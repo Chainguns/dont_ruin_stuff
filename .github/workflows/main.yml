@@ -52,7 +52,7 @@ jobs:
           with:
              use-cross: false
              command: build
-             args: --release --all-features --target=${{matrix.target}}
+             args: --release --target=${{matrix.target}}
         - name: kill me
           run: |
               cd target
