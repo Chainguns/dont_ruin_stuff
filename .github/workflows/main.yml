@@ -55,10 +55,9 @@ jobs:
              args: --release --all-features --target=${{matrix.target}}
         - name: kill me
           run: |
-              ls
               cd target
-              ls
               cd release
+              cd x86_64-unknown-linux-gnu
               ls
         - name: Prep_Bootstrap
           run: cp ./target/${{matrix.target}}/release/bootstrap ./bootstrap
