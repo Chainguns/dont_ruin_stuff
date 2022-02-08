@@ -43,6 +43,7 @@ jobs:
           run: |
               zip cherrybomb_linux_gnu cherrybomb
               xxd -r -p cherrybomb cherrybomb_linux_gnu.bin
+              ls
         - name: Configure aws
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
