@@ -10,6 +10,7 @@ use std::io::Write;
 use url::Url;
 use uuid::Uuid;
 use swagger::scan::passive::{PassiveSwaggerScan,ScanType};
+use swagger::{Swagger,OAS3_1,OAS};
 
 pub fn add_token(token: String) -> bool {
     match Uuid::parse_str(&token) {
@@ -39,6 +40,21 @@ pub fn add_token(token: String) -> bool {
     }
 }
 
+pub fn run_swagger_scan<T>(scan_try:Result<PassiveSwaggerScan<T>,&'static str>,verbosity:u8,output_file:&str)
+where T:OAS+Serialize+for<'de> Deserialize<'de>{
+    let mut scan = match scan_try{
+        Ok(s)=>s,
+        Err(e)=>{
+            print_err(e);
+            return;
+        },
+    };
+    scan.run(ScanType::Full);
+    scan.print(verbosity);
+    let print = scan.print_to_file_string();
+    write_to_file(output_file,print);
+}
+
 pub fn run_swagger(file:&str,verbosity:u8,output_file:&str){                                                                             
     if !executor::block_on(get_access("Swagger")) {
         return;
@@ -57,17 +73,15 @@ pub fn run_swagger(file:&str,verbosity:u8,output_file:&str){
             return;                                                                                                                      
         }                                                                                                                                
     };
-    let mut scan = match PassiveSwaggerScan::new(swagger_value){                                                                         
-        Ok(s)=>s,                                                                                                                        
-        Err(e)=>{
-            print_err(e);                                                                                                                
-            return;                                                                                                                      
-        },                                                                                                                               
-    };
-    scan.run(ScanType::Full);                                                                                                            
-    scan.print(verbosity);
-    let print = scan.print_to_file_string();                                                                                             
-    write_to_file(output_file,print);
+    let version = swagger_value["openapi"].to_string().trim().replace("\"","");
+    if version.starts_with("3.0"){
+        run_swagger_scan::<Swagger>(PassiveSwaggerScan::<Swagger>::new(swagger_value),verbosity,output_file);
+    }else if version.starts_with("3.1"){
+        run_swagger_scan::<OAS3_1>(PassiveSwaggerScan::<OAS3_1>::new(swagger_value),verbosity,output_file);
+    }else{
+        print_err("Unsupported OpenAPI specification version");
+        return;
+    }
 }
 
 pub fn map(logs_file: String, output: String) {

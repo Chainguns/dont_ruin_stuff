@@ -11,7 +11,7 @@ const SWAGGER_OUTPUT_FILE: &str = "results.txt";
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let matches = App::new("FIRECRACKER")
+    let matches = App::new("CHERRYBOMB")
         .version(VERSION)
         .author("<support@blstsecurity.com>")
         .about("Blst cli app")

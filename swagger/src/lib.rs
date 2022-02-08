@@ -92,7 +92,7 @@ pub struct Response{
 #[derive(Debug, Clone, Serialize, Deserialize, Default,PartialEq,Eq)]
 pub struct Header{
     pub description:Option<String>,
-    pub required:bool,
+    pub required:Option<bool>,
     pub deprecated:Option<bool>,
     #[serde(rename = "allowEmptyValue")]
     pub allow_empty_value:Option<bool>,
@@ -159,9 +159,9 @@ pub struct OAuth{
     #[serde(rename = "authorizationUrl")]
     pub authorization_url:String,
     #[serde(rename = "tokenUrl")]
-    pub token_uri:String,
+    pub token_url:Option<String>,
     #[serde(rename = "refreshUrl")]
-    pub refresh_uri:Option<String>,
+    pub refresh_url:Option<String>,
     pub scopes:HashMap<String,String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default,PartialEq,Eq)]
@@ -213,17 +213,99 @@ pub struct Tag{
 }
 //End Tag Object
 
+pub trait OAS{
+    fn get_paths(&self)->Paths;
+    fn version(&self)->String;
+    fn info(&self)->Info;
+    fn servers(&self)->Option<Vec<Server>>;
+    fn components(&self)->Option<Components>;
+    fn security(&self)->Option<Vec<Security>>;
+    fn tags(&self)->Option<Vec<Tag>>;
+    fn ext_docs(&self)->Option<ExternalDocs>;
+}
 #[derive(Debug, Clone, Serialize, Deserialize, Default,PartialEq,Eq)]
 pub struct Swagger{
     pub openapi:String,
     pub info:Info,
     pub servers:Option<Vec<Server>>,
-    pub paths:Path,
+    pub paths:Paths,
     pub components:Option<Components>,
     pub security:Option<Vec<Security>>,
     pub tags:Option<Vec<Tag>>,
     #[serde(rename = "externalDocs")]
     pub external_docs:Option<ExternalDocs>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, Default,PartialEq,Eq)]
+pub struct OAS3_1{
+    pub openapi:String,
+    pub info:Info,
+    pub servers:Option<Vec<Server>>,
+    pub webhooks:Option<Paths>,
+    pub paths:Option<Paths>,
+    pub components:Option<Components>,
+    pub security:Option<Vec<Security>>,
+    pub tags:Option<Vec<Tag>>,
+    #[serde(rename = "externalDocs")]
+    pub external_docs:Option<ExternalDocs>,
+}
+impl OAS for Swagger{
+    fn get_paths(&self)->Paths{
+        self.paths.clone()
+    }
+    fn version(&self)->String{
+        self.openapi.clone()
+    }
+    fn info(&self)->Info{
+        self.info.clone()
+    }
+    fn servers(&self)->Option<Vec<Server>>{
+        self.servers.clone()
+    }
+    fn components(&self)->Option<Components>{
+        self.components.clone()
+    }
+    fn security(&self)->Option<Vec<Security>>{
+        self.security.clone()
+    }
+    fn tags(&self)->Option<Vec<Tag>>{
+        self.tags.clone()
+    }
+    fn ext_docs(&self)->Option<ExternalDocs>{
+        self.external_docs.clone()
+    }
+}
+impl OAS for OAS3_1{
+    fn get_paths(&self)->Paths{
+        let mut paths = HashMap::new();
+        if let Some(p) = self.paths.clone(){
+            paths.extend(p);
+        }
+        if let Some(p) = self.webhooks.clone(){
+            paths.extend(p);
+        }
+        paths
+    }
+    fn version(&self)->String{
+        self.openapi.clone()
+    }
+    fn info(&self)->Info{
+        self.info.clone()
+    }
+    fn servers(&self)->Option<Vec<Server>>{
+        self.servers.clone()
+    }
+    fn components(&self)->Option<Components>{
+        self.components.clone()
+    }
+    fn security(&self)->Option<Vec<Security>>{
+        self.security.clone()
+    }
+    fn tags(&self)->Option<Vec<Tag>>{
+        self.tags.clone()
+    }
+    fn ext_docs(&self)->Option<ExternalDocs>{
+        self.external_docs.clone()
+    }
 }
 /*
 impl Swagger{
