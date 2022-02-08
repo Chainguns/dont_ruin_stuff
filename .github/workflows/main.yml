@@ -53,7 +53,7 @@ jobs:
             aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
             aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
             echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
-            aws s3 cp cherrybomb_linux_gnu.zip s3://test-prem-alon-blst
+            aws s3 cp cherrybomb_linux_gnu.zip s3://presigned-test-blst
           
   build_linux_musl:
     # this job will only run if the PR has been merged
@@ -104,7 +104,7 @@ jobs:
             aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
             aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
             echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
-            aws s3 cp cherrybomb_linux_musl.zip s3://test-prem-alon-blst/
+            aws s3 cp cherrybomb_linux_musl.zip s3://presigned-test-blst
           
   build_mac_arm:
   # this job will only run if the PR has been merged
@@ -149,7 +149,7 @@ jobs:
             aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
             aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
             aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
-            aws s3 cp cherrybomb_mac_arm.zip s3://test-prem-alon-blst
+            aws s3 cp cherrybomb_mac_arm.zip s3://presigned-test-blst
             echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
           
   build_mac_x86_64:
@@ -195,5 +195,5 @@ jobs:
             aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
             aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
             aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
-            aws s3 cp cherrybomb_mac_x86_64.zip s3://test-prem-alon-blst
+            aws s3 cp cherrybomb_mac_x86_64.zip s3://presigned-test-blst
             echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
