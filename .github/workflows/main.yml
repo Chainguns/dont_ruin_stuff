@@ -1,6 +1,4 @@
 
-# on: 
-#   push
 on:
   pull_request:
     types: [ closed ]
@@ -54,33 +52,48 @@ jobs:
              command: build
              args: --release --target=${{matrix.target}}
 
-        - name: Prep_Bootstrap
+        - name: Prep Bootstrap
           run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
         - name: Rename File to Upload gnu
+          id: gnu_zip
           if: ${{matrix.target}} == 'x86_64-unknown-linux-gnu'
-          run: zip cherrybomb_linux_gnu cherrybomb
+          run: |
+              echo ${{matrix.target}}
+              zip cherrybomb_linux_gnu cherrybomb
+              OUTPUT=$(echo cherrybomb_linux_gnu)
+              echo "::set-output name=OUTPUT::$OUTPUT"
         - name: Rename File to Upload musl
+          id: musl_zip
           if: ${{matrix.target}} == 'x86_64-unknown-linux-musl'
-          run: zip cherrybomb_linux_musl cherrybomb
-        - name: Configure aws
+          run: |
+              echo ${{matrix.target}}
+              zip cherrybomb_linux_musl cherrybomb
+              OUTPUT=$(echo cherrybomb_linux_gnu)
+              echo "::set-output name=OUTPUT::$OUTPUT"
+        - name: Configure aws musl
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             AWS_DEFAULT_REGION: eu-central-1
             AWS_DEFAULT_OUTPUT: json
+          if: ${{matrix.target}} == 'x86_64-unknown-linux-musl'
           run: |
             aws configure set aws_access_key_id ${{ env.AWS_ACCESS_KEY_ID }} --profile CICD_User
             aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
             aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
             aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
             echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
-        - name: Upload s3 linux musl
-          if: ${{matrix.target}} == 'x86_64-unknown-linux-musl'
-          run:  aws s3 cp cherrybomb_linux_musl.zip s3://test-prem-alon-blst/
-        - name: Upload s3 linux gnu
+            aws s3 cp cherrybomb_linux_musl.zip s3://test-prem-alon-blst/
+        - name: Configure gnu
           if: ${{matrix.target}} == 'x86_64-unknown-linux-gnu'
-          run:  aws s3 cp cherrybomb_linux_gnu.zip s3://test-prem-alon-blst
-          
+          run: |
+            aws configure set aws_access_key_id ${{ env.AWS_ACCESS_KEY_ID }} --profile CICD_User
+            aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
+            aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
+            aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
+            echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
+            aws s3 cp cherrybomb_linux_gnu.zip s3://test-prem-alon-blst/
+
   #       - name: Slack Notification on Failure
   #         if: ${{ failure() }}
   #         uses: rtCamp/action-slack-notify@v2.2.0
@@ -103,7 +116,7 @@ jobs:
   #           SLACK_ICON: ':robot:'
   #           SLACK_TITLE: 'Job finished successfully :v:'
   #           SLACK_LINK_NAMES: true
-  #           SLACK_MESSAGE: 'Pull request submitted :rocket:' 
+  #           SLACK_MESSAGE: 'Pull request submitted :rocket:'
   build_mac:
   # this job will only run if the PR has been merged
      if: github.event.pull_request.merged == true
@@ -151,29 +164,42 @@ jobs:
           run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
         - name: Rename File to Upload mac x86_64
           if: ${{matrix.target}} == 'x86_64-apple-darwin'
-          run: zip cherrybomb_mac_x86_64 cherrybomb
+          run: |
+              echo ${{matrix.target}}
+              zip cherrybomb_mac_x86_64 cherrybomb
         - name: Rename File to Upload mac ARM
           if: ${{matrix.target}} == 'aarch64-apple-darwin'
-          run: zip cherrybomb_mac_arm cherrybomb
-        - name: configre aws
+          run: |
+              echo ${{matrix.target}}
+              zip cherrybomb_mac_arm cherrybomb
+        - name: configre aws mac arm
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             AWS_DEFAULT_REGION: eu-central-1
             AWS_DEFAULT_OUTPUT: json
+          if: ${{matrix.target}} == 'aarch64-apple-darwin'
           run: |
             aws configure set aws_access_key_id ${{ env.AWS_ACCESS_KEY_ID }} --profile CICD_User
             aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
             aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
             aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
-        - name: Upload s3 mac ARM
-          if: ${{matrix.target}} == 'aarch64-apple-darwin'
-          run:  aws s3 cp cherrybomb_mac_arm.zip s3://test-prem-alon-blst
-        - name: Upload s3 mac x86_64
-          if: ${{matrix.target}} == 'x86_64-apple-darwin'
-          run:  aws s3 cp cherrybomb_mac_x86_64.zip s3://test-prem-alon-blst
-
+            aws s3 cp cherrybomb_mac_arm.zip s3://test-prem-alon-blst
             echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
+        - name: configre aws mac x86_64
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: eu-central-1
+            AWS_DEFAULT_OUTPUT: json
+          if: ${{matrix.target}} == 'x86_64-apple-darwin'
+          run: |
+              aws configure set aws_access_key_id ${{ env.AWS_ACCESS_KEY_ID }} --profile CICD_User
+              aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
+              aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
+              aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
+              aws s3 cp cherrybomb_mac_x86_64.zip s3://test-prem-alon-blst
+              echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
   #       - name: Slack Notification on Failure
   #         if: ${{ failure() }}
   #         uses: rtCamp/action-slack-notify@v2.2.0
@@ -196,4 +222,4 @@ jobs:
   #           SLACK_ICON: ':robot:'
   #           SLACK_TITLE: 'Job finished successfully :v:'
   #           SLACK_LINK_NAMES: true
-  #           SLACK_MESSAGE: 'Pull request submitted :rocket:' 
+  #           SLACK_MESSAGE: 'Pull request submitted :rocket:'
