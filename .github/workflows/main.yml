@@ -1,6 +1,10 @@
 
+# on: 
+#   push
 on: 
-  push
+  push:
+    paths:
+      - 'lambda_changes.txt'
 
 name: Click here to see job results 
 
@@ -12,23 +16,25 @@ jobs:
       fail-fast: false
       matrix:
          target:
-         - x86_64-unknown-linux-gnu	
+         - x86_64-unknown-linux-gnu
+         - x86_64-unknown-linux-musl
+         
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
-      - uses: jannekem/run-python-script-action@v1
-        with:
-          script: |
-            f = open('Cargo.toml', 'w')
-            f.writelines('[workspace]\n')
-            f.writelines('members = [\n')
-            f.writelines('	"mapper",\n')
-            f.writelines('	"decider",\n')
-            f.writelines('	"attacker",\n')
-            f.writelines(']\n')
-            f.writelines('[profile.release]\n')
-            f.writelines('opt-level = 3')
-            f.close()
+#       - uses: jannekem/run-python-script-action@v1
+#         with:
+#           script: |
+#             f = open('Cargo.toml', 'w')
+#             f.writelines('[workspace]\n')
+#             f.writelines('members = [\n')
+#             f.writelines('	"mapper",\n')
+#             f.writelines('	"decider",\n')
+#             f.writelines('	"attacker",\n')
+#             f.writelines(']\n')
+#             f.writelines('[profile.release]\n')
+#             f.writelines('opt-level = 3')
+#             f.close()
       - name: musl-tools for ring
         run: |
           sudo apt install musl-tools
@@ -97,22 +103,23 @@ jobs:
       matrix:
          target:
          - x86_64-apple-darwin
+         - aarch64-apple-darwin
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-      - uses: jannekem/run-python-script-action@v1
-        with:
-          script: |
-            f = open('Cargo.toml', 'w')
-            f.writelines('[workspace]\n')
-            f.writelines('members = [\n')
-            f.writelines('	"mapper",\n')
-            f.writelines('	"decider",\n')
-            f.writelines('	"attacker",\n')
-            f.writelines(']\n')
-            f.writelines('[profile.release]\n')
-            f.writelines('opt-level = 3')
-            f.close()
+#       - uses: actions/setup-python@v2
+#       - uses: jannekem/run-python-script-action@v1
+#         with:
+#           script: |
+#             f = open('Cargo.toml', 'w')
+#             f.writelines('[workspace]\n')
+#             f.writelines('members = [\n')
+#             f.writelines('	"mapper",\n')
+#             f.writelines('	"decider",\n')
+#             f.writelines('	"attacker",\n')
+#             f.writelines(']\n')
+#             f.writelines('[profile.release]\n')
+#             f.writelines('opt-level = 3')
+#             f.close()
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
