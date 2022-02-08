@@ -56,6 +56,7 @@ jobs:
         - name: kill me
           run: |
               cd target
+              cd x86_64-unknown-linux-gnu
               ls
         - name: Prep_Bootstrap
           run: cp ./target/${{matrix.target}}/release/bootstrap ./bootstrap
