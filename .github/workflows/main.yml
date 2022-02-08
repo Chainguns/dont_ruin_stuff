@@ -53,20 +53,15 @@ jobs:
              use-cross: false
              command: build
              args: --release --target=${{matrix.target}}
-        - name: kill me
-          run: |
-              cd target
-              cd x86_64-unknown-linux-gnu
-              cd release
-              ls
+
         - name: Prep_Bootstrap
-          run: cp ./target/${{matrix.target}}/release/bootstrap ./bootstrap
+          run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
         - name: Rename File to Upload gnu
           if: ${{matrix.target}} == 'x86_64-unknown-linux-gnu'
-          run: zip cherrybomb_linux_gnu bootstrap
+          run: zip cherrybomb_linux_gnu cherrybomb
         - name: Rename File to Upload musl
           if: ${{matrix.target}} == 'x86_64-unknown-linux-musl'
-          run: zip cherrybomb_linux_musl bootstrap
+          run: zip cherrybomb_linux_musl cherrybomb
         - name: Configure aws
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -152,21 +147,14 @@ jobs:
              use-cross: false
              command: build
              args: --release --all-features --target=${{matrix.target}}
-        - name: kill me
-          run: |
-              ls
-              cd target
-              ls
-              cd release
-              ls
         - name: Prep_Bootstrap
-          run: cp ./target/${{matrix.target}}/release/bootstrap ./bootstrap
+          run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
         - name: Rename File to Upload mac x86_64
           if: ${{matrix.target}} == 'x86_64-apple-darwin'
-          run: zip cherrybomb_mac_x86_64 bootstrap
+          run: zip cherrybomb_mac_x86_64 cherrybomb
         - name: Rename File to Upload mac ARM
           if: ${{matrix.target}} == 'aarch64-apple-darwin'
-          run: zip cherrybomb_mac_arm bootstrap
+          run: zip cherrybomb_mac_arm cherrybomb
         - name: configre aws
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
