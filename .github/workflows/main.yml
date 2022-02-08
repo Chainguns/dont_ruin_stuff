@@ -46,9 +46,9 @@ jobs:
 
       - uses: actions-rs/cargo@v1
         with:
-           use-cross: false
+           use-cross: true
            command: build
-           args: --release --target=${{matrix.target}}
+           args: --release --all-features --target=${{matrix.target}}
 #       - name: Prep_Bootstrap
 #         run: |
 #           cp ./target/x86_64-unknown-linux-musl/release/bootstrap ./bootstrap
@@ -125,9 +125,9 @@ jobs:
 
       - uses: actions-rs/cargo@v1
         with:
-           use-cross: false
+           use-cross: true
            command: build
-           args: --release --target=${{matrix.target}}
+           args: --release --all-features --target=${{matrix.target}}
 #       - name: uploading to aws
 #         env:
 #           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
