@@ -6,7 +6,7 @@ on:
     types: [ closed ]
 
 jobs:
-  build_linux:
+  build_linux_gnu:
     # this job will only run if the PR has been merged
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
@@ -16,24 +16,9 @@ jobs:
         matrix:
            target:
            - x86_64-unknown-linux-gnu
-           - x86_64-unknown-linux-musl
 
     steps:
         - uses: actions/checkout@v2
-        - uses: actions/setup-python@v2
-  #       - uses: jannekem/run-python-script-action@v1
-  #         with:
-  #           script: |
-  #             f = open('Cargo.toml', 'w')
-  #             f.writelines('[workspace]\n')
-  #             f.writelines('members = [\n')
-  #             f.writelines('	"mapper",\n')
-  #             f.writelines('	"decider",\n')
-  #             f.writelines('	"attacker",\n')
-  #             f.writelines(']\n')
-  #             f.writelines('[profile.release]\n')
-  #             f.writelines('opt-level = 3')
-  #             f.close()
         - name: musl-tools for ring
           run: |
             sudo apt install musl-tools
@@ -57,10 +42,57 @@ jobs:
         - name: Prep_Bootstrap
           run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
         - name: Rename File to Upload gnu
-          if: ${{matrix.target}} == 'x86_64-unknown-linux-gnu'
           run: zip cherrybomb_linux_gnu cherrybomb
+        - name: Configure aws
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: eu-central-1
+            AWS_DEFAULT_OUTPUT: json
+          run: |
+            aws configure set aws_access_key_id ${{ env.AWS_ACCESS_KEY_ID }} --profile CICD_User
+            aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
+            aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
+            aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
+            echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
+            aws s3 cp cherrybomb_linux_gnu.zip s3://test-prem-alon-blst
+          
+  build_linux_musl:
+    # this job will only run if the PR has been merged
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    strategy:
+        fail-fast: false
+        matrix:
+           target:
+           - x86_64-unknown-linux-musl
+
+    steps:
+        - uses: actions/checkout@v2
+        - name: musl-tools for ring
+          run: |
+            sudo apt install musl-tools
+            sudo apt-get install build-essential
+        - uses: actions-rs/toolchain@v1
+          with:
+            toolchain: stable
+            target: ${{matrix.target}}
+            override: true
+
+        - uses: Swatinem/rust-cache@v1
+          with:
+            cache-on-failure: true
+
+        - uses: actions-rs/cargo@v1
+          with:
+             use-cross: false
+             command: build
+             args: --release --target=${{matrix.target}}
+
+        - name: Prep_Bootstrap
+          run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
         - name: Rename File to Upload musl
-          if: ${{matrix.target}} == 'x86_64-unknown-linux-musl'
           run: zip cherrybomb_linux_musl cherrybomb
         - name: Configure aws
           env:
@@ -74,37 +106,55 @@ jobs:
             aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
             aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
             echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
-        - name: Upload s3 linux musl
-          if: ${{matrix.target}} == 'x86_64-unknown-linux-musl'
-          run:  aws s3 cp cherrybomb_linux_musl.zip s3://test-prem-alon-blst/
-        - name: Upload s3 linux gnu
-          if: ${{matrix.target}} == 'x86_64-unknown-linux-gnu'
-          run:  aws s3 cp cherrybomb_linux_gnu.zip s3://test-prem-alon-blst
+            aws s3 cp cherrybomb_linux_musl.zip s3://test-prem-alon-blst/
           
-  #       - name: Slack Notification on Failure
-  #         if: ${{ failure() }}
-  #         uses: rtCamp/action-slack-notify@v2.2.0
-  #         env:
-  #           SLACK_CHANNEL: git
-  #           SLACK_WEBHOOK: ${{ secrets.ACTION_MONITORING_SLACK }}
-  #           SLACK_COLOR: '#FF0000'
-  #           SLACK_ICON: ':robot:'
-  #           SLACK_TITLE: 'Job failed :x:'
-  #           SLACK_LINK_NAMES: true
-  #           SLACK_MESSAGE: 'Pull request submitted :rocket:'
+  build_mac_arm:
+  # this job will only run if the PR has been merged
+     if: github.event.pull_request.merged == true
+     runs-on: macos-latest
 
-  #       - name: Slack Notification on Success
-  #         if: ${{ success() }}
-  #         uses: rtCamp/action-slack-notify@v2
-  #         env:
-  #           SLACK_CHANNEL: git
-  #           SLACK_WEBHOOK: ${{ secrets.ACTION_MONITORING_SLACK }}
-  #           SLACK_COLOR: '#008000'
-  #           SLACK_ICON: ':robot:'
-  #           SLACK_TITLE: 'Job finished successfully :v:'
-  #           SLACK_LINK_NAMES: true
-  #           SLACK_MESSAGE: 'Pull request submitted :rocket:' 
-  build_mac:
+     strategy:
+        fail-fast: false
+        matrix:
+           target:
+           - aarch64-apple-darwin
+     steps:
+        - uses: actions/checkout@v2
+        - uses: actions-rs/toolchain@v1
+          with:
+            toolchain: stable
+            target: ${{matrix.target}}
+            override: true
+
+
+        - uses: Swatinem/rust-cache@v1
+          with:
+            cache-on-failure: true
+
+        - uses: actions-rs/cargo@v1
+          with:
+             use-cross: false
+             command: build
+             args: --release --all-features --target=${{matrix.target}}
+        - name: Prep_Bootstrap
+          run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
+        - name: Rename File to Upload mac ARM
+          run: zip cherrybomb_mac_arm cherrybomb
+        - name: configre aws
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: eu-central-1
+            AWS_DEFAULT_OUTPUT: json
+          run: |
+            aws configure set aws_access_key_id ${{ env.AWS_ACCESS_KEY_ID }} --profile CICD_User
+            aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
+            aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
+            aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
+            aws s3 cp cherrybomb_mac_arm.zip s3://test-prem-alon-blst
+            echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
+          
+  build_mac_x86_64:
   # this job will only run if the PR has been merged
      if: github.event.pull_request.merged == true
      runs-on: macos-latest
@@ -114,23 +164,8 @@ jobs:
         matrix:
            target:
            - x86_64-apple-darwin
-           - aarch64-apple-darwin
      steps:
         - uses: actions/checkout@v2
-  #       - uses: actions/setup-python@v2
-  #       - uses: jannekem/run-python-script-action@v1
-  #         with:
-  #           script: |
-  #             f = open('Cargo.toml', 'w')
-  #             f.writelines('[workspace]\n')
-  #             f.writelines('members = [\n')
-  #             f.writelines('	"mapper",\n')
-  #             f.writelines('	"decider",\n')
-  #             f.writelines('	"attacker",\n')
-  #             f.writelines(']\n')
-  #             f.writelines('[profile.release]\n')
-  #             f.writelines('opt-level = 3')
-  #             f.close()
         - uses: actions-rs/toolchain@v1
           with:
             toolchain: stable
@@ -150,11 +185,7 @@ jobs:
         - name: Prep_Bootstrap
           run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
         - name: Rename File to Upload mac x86_64
-          if: ${{matrix.target}} == 'x86_64-apple-darwin'
           run: zip cherrybomb_mac_x86_64 cherrybomb
-        - name: Rename File to Upload mac ARM
-          if: ${{matrix.target}} == 'aarch64-apple-darwin'
-          run: zip cherrybomb_mac_arm cherrybomb
         - name: configre aws
           env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -166,34 +197,5 @@ jobs:
             aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
             aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
             aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
-        - name: Upload s3 mac ARM
-          if: ${{matrix.target}} == 'aarch64-apple-darwin'
-          run:  aws s3 cp cherrybomb_mac_arm.zip s3://test-prem-alon-blst
-        - name: Upload s3 mac x86_64
-          if: ${{matrix.target}} == 'x86_64-apple-darwin'
-          run:  aws s3 cp cherrybomb_mac_x86_64.zip s3://test-prem-alon-blst
-
+            aws s3 cp cherrybomb_mac_x86_64.zip s3://test-prem-alon-blst
             echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
-  #       - name: Slack Notification on Failure
-  #         if: ${{ failure() }}
-  #         uses: rtCamp/action-slack-notify@v2.2.0
-  #         env:
-  #           SLACK_CHANNEL: git
-  #           SLACK_WEBHOOK: ${{ secrets.ACTION_MONITORING_SLACK }}
-  #           SLACK_COLOR: '#FF0000'
-  #           SLACK_ICON: ':robot:'
-  #           SLACK_TITLE: 'Job failed :x:'
-  #           SLACK_LINK_NAMES: true
-  #           SLACK_MESSAGE: 'Pull request submitted :rocket:'
-
-  #       - name: Slack Notification on Success
-  #         if: ${{ success() }}
-  #         uses: rtCamp/action-slack-notify@v2
-  #         env:
-  #           SLACK_CHANNEL: git
-  #           SLACK_WEBHOOK: ${{ secrets.ACTION_MONITORING_SLACK }}
-  #           SLACK_COLOR: '#008000'
-  #           SLACK_ICON: ':robot:'
-  #           SLACK_TITLE: 'Job finished successfully :v:'
-  #           SLACK_LINK_NAMES: true
-  #           SLACK_MESSAGE: 'Pull request submitted :rocket:' 
