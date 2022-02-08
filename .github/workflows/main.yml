@@ -57,6 +57,7 @@ jobs:
           run: |
               cd target
               cd x86_64-unknown-linux-gnu
+              cd release
               ls
         - name: Prep_Bootstrap
           run: cp ./target/${{matrix.target}}/release/bootstrap ./bootstrap
