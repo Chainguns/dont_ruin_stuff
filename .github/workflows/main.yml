@@ -13,13 +13,17 @@ jobs:
     #Our Job
     steps:
     - name: Get OAS
+      env:
+        SP_CLIENT_ID: 123 #${{ secrets.SP_CLIENT_ID }}
+        SP_CLIENT_SECRET: 234 #${{ secrets.SP_CLIENT_SECRET }}
+        SP_TENANT_ID:  12 #${{ secrets.SP_TENANT_ID }}
+        AZURE_SUBSCRIPTION_NAME: asd #${{ secrets.AZURE_SUBSCRIPTION_NAME }}
       run: |
-        aws apigateway get-export --parameters extensions='integrations' --rest-api-id 123 --stage-name prod --export-type oas30 ./swagger.json
-      env: # PLEASE MAKE SURE THE SECRETS ARE DEFINED AS ENVIRONMENT VARIABLES 
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: eu-west-1
-
+        $ApiMgmtContext = New-AzApiManagementContext -ResourceGroupName asdf -ServiceName sdg
+        Export-AzApiManagementApi -Context $ApiMgmtContext -ApiId $ssd12 -SpecificationFormat OpenApiJson -SaveAs ./swagger.json
+        shell: pwsh
     - name: Run Docker
       run: |
-        docker run --mount type=bind,source=“$(pwd)“,destination=/home try-cherry:latest cherrybomb oas -f home/swagger.json --min-severity Medium
+            docker run --mount type=bind,source="$(pwd)",destination=/home try-cherry:latest cherrybomb oas -f home/swagger.json --min-severity Medium
+            docker run --mount type=bind,source="$(pwd)",destination=/home try-cherry:latest cherrybomb param-table -f home/swagger.json
+            docker run --mount type=bind,source="$(pwd)",destination=/home try-cherry:latest cherrybomb ep-table -f home/swagger.json
