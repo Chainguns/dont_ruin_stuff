@@ -5,13 +5,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get OAS
-        run: |
-          aws apigateway get-export --parameters extensions=‘integrations’ --rest-api-id 1 --stage-name 2 --export-type oas30 ./swagger.json
-      # PLEASE MAKE SURE THE SECRETS ARE DEFINED AS ENVIRONMENT VARIABLES
+        # PLEASE MAKE SURE THE SECRETS ARE DEFINED AS ENVIRONMENT VARIABLES
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: $REGION
+          SP_CLIENT_ID: ${{ secrets.SP_CLIENT_ID }}
+          SP_CLIENT_SECRET: ${{ secrets.SP_CLIENT_SECRET }}
+          SP_TENANT_ID: ${{ secrets.SP_TENANT_ID }}
+          AZURE_SUBSCRIPTION_NAME: ${{ secrets.AZURE_SUBSCRIPTION_NAME }}
+        # PLEASE MAKE SURE THAT YOU’VE ALREADY SET UP YOUR AZURE CREDENTIALS IN GITHUB (you can check it by running Get-AzContext -ListAvailable)
+        shell: pwsh
+        run: |
+          $ApiMgmtContext = New-AzApiManagementContext -ResourceGroupName 1 -ServiceName 2
+          Export-AzApiManagementApi -Context $ApiMgmtContext -ApiId $3 -SpecificationFormat OpenApiJson -SaveAs ./swagger.json
       - name: Run Docker
         run: >
           docker run
