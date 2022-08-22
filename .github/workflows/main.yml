@@ -1,30 +1,29 @@
 on:
   push
 jobs:
-  build:
+ build:
     runs-on: ubuntu-latest
-    steps:  
+    steps:
       - name: Get OAS
         run: |
-              aws apigateway get-export --parameters extensions='integrations' --rest-api-id 132 --stage-name prod --export-type oas30 ./swagger.json
-          # PLEASE MAKE SURE THE SECRETS ARE DEFINED AS ENVIRONMENT VARIABLES
-        env: 
+          aws apigateway get-export --parameters extensions=‘integrations’ --rest-api-id 1 --stage-name 2 --export-type oas30 ./swagger.json
+      # PLEASE MAKE SURE THE SECRETS ARE DEFINED AS ENVIRONMENT VARIABLES
+        env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: eu-west-1
-
+          AWS_DEFAULT_REGION: $REGION
       - name: Run Docker
         run: >
-              docker run
-              --mount type=bind,source="$(pwd)",destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
-              cherrybomb oas -f home/swagger.json --min-severity Medium --api-key=Couldn't get API key
+          docker run
+          --mount type=bind,source=“$(pwd)“,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
+          cherrybomb oas -f home/swagger.json --min-severity Medium --api-key=Couldn’t get API key
       - name: Run Param Table
         run: >
-              docker run
-              --mount type=bind,source="$(pwd)",destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
-              cherrybomb param-table -f home/swagger.json --api-key=Couldn't get API key
+          docker run
+          --mount type=bind,source=“$(pwd)“,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
+          cherrybomb param-table -f home/swagger.json --api-key=Couldn’t get API key
       - name: Run Ep Table
         run: >
-              docker run
-              --mount type=bind,source="$(pwd)",destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
-              cherrybomb ep-table -f home/swagger.json --api-key=Couldn't get API key
+          docker run
+          --mount type=bind,source=“$(pwd)“,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
+          cherrybomb ep-table -f home/swagger.json --api-key=Couldn’t get API key
