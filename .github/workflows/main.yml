@@ -4,29 +4,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Get OAS
-        run: |
-          curl -L https://free.keep.sh/9ab64df49d/swagger3.json > swagger.json
-      - name: Get OAS2
-        run: |
-          ls
-      - name: Get OAS3
-        run: |
-          pwd
+      - uses: actions/checkout@v2
       - name: Run Docker
         run: >
           docker run
-          --mount type=bind,source="$(pwd)",destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
-          cherrybomb oas -f /home/swagger.json --min-severity Critical --api-key=bd6d9e4ca4414a44a85978eec024484b
-
+          --mount type=bind,source=/home/runner/work/dont_ruin_stuff/dont_ruin_stuff/path/to,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
+          cherrybomb oas -f home/swagger.json --min-severity Medium --api-key=bd6d9e4ca4414a44a85978eec024484b
       - name: Run Param Table
         run: >
           docker run
-          --mount type=bind,source="$(pwd)",destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
-          cherrybomb param-table -f /home/swagger.json --api-key=bd6d9e4ca4414a44a85978eec024484b
-
+          --mount type=bind,source=/home/runner/work/dont_ruin_stuff/dont_ruin_stuff/path/to,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
+          cherrybomb param-table -f home/swagger.json --api-key=bd6d9e4ca4414a44a85978eec024484b
       - name: Run Ep Table
         run: >
           docker run
-          --mount type=bind,source="$(pwd)",destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
-          cherrybomb ep-table -f /home/swagger.json --api-key=bd6d9e4ca4414a44a85978eec024484b
+          --mount type=bind,source=/home/runner/work/dont_ruin_stuff/dont_ruin_stuff/path/to,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
+          cherrybomb ep-table -f home/swagger.json --api-key=bd6d9e4ca4414a44a85978eec024484b
