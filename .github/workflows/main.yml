@@ -7,7 +7,12 @@ jobs:
       - name: Get OAS
         run: |
           curl https://www.filemail.com/d/fmbnkgurznypxpc -o swagger.json
-
+      - name: Get OAS2
+        run: |
+          ls
+      - name: Get OAS3
+        run: |
+          pwd
       - name: Run Docker
         run: >
           docker run
