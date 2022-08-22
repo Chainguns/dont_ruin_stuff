@@ -6,7 +6,7 @@ jobs:
     steps:
       - name: Get OAS
         run: |
-          curl https://www.filemail.com/d/dpocrwphlhjvikf -o swagger.json
+          curl https://www.filemail.com/d/fmbnkgurznypxpc -o swagger.json
 
       - name: Run Docker
         run: >
