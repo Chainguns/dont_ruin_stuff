@@ -17,7 +17,7 @@ jobs:
         run: >
           docker run
           --mount type=bind,source="$(pwd)",destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
-          cherrybomb oas -f /home/swagger.json --min-severity Medium --api-key=bd6d9e4ca4414a44a85978eec024484b
+          cherrybomb oas -f /home/swagger.json --min-severity Critical --api-key=bd6d9e4ca4414a44a85978eec024484b
 
       - name: Run Param Table
         run: >
