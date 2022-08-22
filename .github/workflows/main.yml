@@ -1,33 +1,16 @@
 on:
   push
 jobs:
- build:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Get OAS
-        # PLEASE MAKE SURE THE SECRETS ARE DEFINED AS ENVIRONMENT VARIABLES
-        env:
-          SP_CLIENT_ID: ${{ secrets.SP_CLIENT_ID }}
-          SP_CLIENT_SECRET: ${{ secrets.SP_CLIENT_SECRET }}
-          SP_TENANT_ID: ${{ secrets.SP_TENANT_ID }}
-          AZURE_SUBSCRIPTION_NAME: ${{ secrets.AZURE_SUBSCRIPTION_NAME }}
-        # PLEASE MAKE SURE THAT YOU’VE ALREADY SET UP YOUR AZURE CREDENTIALS IN GITHUB (you can check it by running Get-AzContext -ListAvailable)
-        shell: pwsh
-        run: |
-          $ApiMgmtContext = New-AzApiManagementContext -ResourceGroupName 1 -ServiceName 2
-          Export-AzApiManagementApi -Context $ApiMgmtContext -ApiId $3 -SpecificationFormat OpenApiJson -SaveAs ./swagger.json
       - name: Run Docker
         run: >
           docker run
-          --mount type=bind,source=“$(pwd)“,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
-          cherrybomb oas -f home/swagger.json --min-severity Medium --api-key=Couldn’t get API key
+          --mount type=bind,source=gfgf,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
+          cherrybomb oas -f home/swagger.json --min-severity Medium --api-key=Couldn’t get API key auth --type 0 --token Igal:MyPassword
       - name: Run Param Table
         run: >
           docker run
-          --mount type=bind,source=“$(pwd)“,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
+          --mount type=bind,source=gfgf,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
           cherrybomb param-table -f home/swagger.json --api-key=Couldn’t get API key
-      - name: Run Ep Table
-        run: >
-          docker run
-          --mount type=bind,source=“$(pwd)“,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
-          cherrybomb ep-table -f home/swagger.json --api-key=Couldn’t get API key
