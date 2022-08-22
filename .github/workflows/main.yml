@@ -6,7 +6,7 @@ jobs:
     steps:
       - name: Get OAS
         run: |
-          curl https://www.filemail.com/d/fmbnkgurznypxpc -o swagger.json
+          curl -L https://free.keep.sh/9ab64df49d/swagger.json > swagger.json
       - name: Get OAS2
         run: |
           ls
