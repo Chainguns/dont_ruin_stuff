@@ -1,208 +1,22 @@
-#zip cherrybomb_linux_gnu cherrybomb
 on:
-  pull_request:
-    types: [ closed ]
-
+  push
 jobs:
-  build_linux_gnu:
-    # this job will only run if the PR has been merged
-    if: github.event.pull_request.merged == true
+  build:
     runs-on: ubuntu-latest
-
-    strategy:
-        fail-fast: false
-        matrix:
-           target:
-           - x86_64-unknown-linux-gnu
-
     steps:
-        - uses: actions/checkout@v2
-        - name: musl-tools for ring
-          run: |
-            sudo apt install musl-tools
-            sudo apt-get install build-essential
-        - uses: actions-rs/toolchain@v1
-          with:
-            toolchain: stable
-            target: ${{matrix.target}}
-            override: true
-
-        - uses: Swatinem/rust-cache@v1
-          with:
-            cache-on-failure: true
-
-        - uses: actions-rs/cargo@v1
-          with:
-             use-cross: false
-             command: build
-             args: --release --target=${{matrix.target}}
-
-        - name: Prep_Bootstrap
-          run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
-        - name: Rename File to Upload gnu
-          run: |
-              mv cherrybomb cherrybomb_linux_gnu
-        - name: Configure aws
-          env:
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: eu-central-1
-            AWS_DEFAULT_OUTPUT: json
-          run: |
-            aws configure set aws_access_key_id ${{ env.AWS_ACCESS_KEY_ID }} --profile CICD_User
-            aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
-            aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
-            aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
-            aws s3 cp cherrybomb_linux_gnu s3://download-cherrybomb.blstsecurity.com/
-
-            echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
-
-          
-  build_linux_musl:
-    # this job will only run if the PR has been merged
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-
-    strategy:
-        fail-fast: false
-        matrix:
-           target:
-           - x86_64-unknown-linux-musl
-
-    steps:
-        - uses: actions/checkout@v2
-        - name: musl-tools for ring
-          run: |
-            sudo apt install musl-tools
-            sudo apt-get install build-essential
-        - uses: actions-rs/toolchain@v1
-          with:
-            toolchain: stable
-            target: ${{matrix.target}}
-            override: true
-
-        - uses: Swatinem/rust-cache@v1
-          with:
-            cache-on-failure: true
-
-        - uses: actions-rs/cargo@v1
-          with:
-             use-cross: false
-             command: build
-             args: --release --target=${{matrix.target}}
-
-        - name: Prep_Bootstrap
-          run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
-        - name: Rename File to Upload musl
-          run: |
-              mv cherrybomb cherrybomb_linux_musl
-        - name: Configure aws
-          env:
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: eu-central-1
-            AWS_DEFAULT_OUTPUT: json
-          run: |
-            aws configure set aws_access_key_id ${{ env.AWS_ACCESS_KEY_ID }} --profile CICD_User
-            aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
-            aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
-            aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
-            aws s3 cp cherrybomb_linux_musl s3://download-cherrybomb.blstsecurity.com/
-
-            echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
-          
-  build_mac_arm:
-  # this job will only run if the PR has been merged
-     if: github.event.pull_request.merged == true
-     runs-on: macos-latest
-
-     strategy:
-        fail-fast: false
-        matrix:
-           target:
-           - aarch64-apple-darwin
-     steps:
-        - uses: actions/checkout@v2
-        - uses: actions-rs/toolchain@v1
-          with:
-            toolchain: stable
-            target: ${{matrix.target}}
-            override: true
-
-
-        - uses: Swatinem/rust-cache@v1
-          with:
-            cache-on-failure: true
-
-        - uses: actions-rs/cargo@v1
-          with:
-             use-cross: false
-             command: build
-             args: --release --all-features --target=${{matrix.target}}
-        - name: Prep_Bootstrap
-          run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
-        - name: Rename File to Upload mac ARM
-          run: |
-              mv cherrybomb cherrybomb_mac_arm
-        - name: configre aws
-          env:
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: eu-central-1
-            AWS_DEFAULT_OUTPUT: json
-          run: |
-            aws configure set aws_access_key_id ${{ env.AWS_ACCESS_KEY_ID }} --profile CICD_User
-            aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
-            aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
-            aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
-
-            aws s3 cp cherrybomb_mac_arm s3://download-cherrybomb.blstsecurity.com
-            echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
-          
-  build_mac_x86_64:
-  # this job will only run if the PR has been merged
-     if: github.event.pull_request.merged == true
-     runs-on: macos-latest
-
-     strategy:
-        fail-fast: false
-        matrix:
-           target:
-           - x86_64-apple-darwin
-     steps:
-        - uses: actions/checkout@v2
-        - uses: actions-rs/toolchain@v1
-          with:
-            toolchain: stable
-            target: ${{matrix.target}}
-            override: true
-
-
-        - uses: Swatinem/rust-cache@v1
-          with:
-            cache-on-failure: true
-
-        - uses: actions-rs/cargo@v1
-          with:
-             use-cross: false
-             command: build
-             args: --release --all-features --target=${{matrix.target}}
-        - name: Prep_Bootstrap
-          run: cp ./target/${{matrix.target}}/release/cherrybomb ./cherrybomb
-        - name: Rename File to Upload mac x86_64
-          run: |
-              mv cherrybomb cherrybomb_mac_x86_64
-        - name: configre aws
-          env:
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_DEFAULT_REGION: eu-central-1
-            AWS_DEFAULT_OUTPUT: json
-          run: |
-            aws configure set aws_access_key_id ${{ env.AWS_ACCESS_KEY_ID }} --profile CICD_User
-            aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile CICD_User
-            aws configure set default.region ${{ env.AWS_DEFAULT_REGION }} --profile CICD_User
-            aws configure set output ${{ env.AWS_DEFAULT_OUTPUT }} --profile CICD_User
-            aws s3 cp cherrybomb_mac_x86_64 s3://download-cherrybomb.blstsecurity.com/
-
-            echo "SLACK_FOOTER=<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|Click here to go to the job logs>" >> $GITHUB_ENV
+      - uses: actions/checkout@v2
+      - name: Run Docker
+        run: >
+          docker run
+          --mount type=bind,source=/home/runner/work/dont_ruin_stuff/dont_ruin_stuff/path/to,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
+          cherrybomb oas -f home/swagger.json --min-severity Medium --api-key=bd6d9e4ca4414a44a85978eec024484b
+      - name: Run Param Table
+        run: >
+          docker run
+          --mount type=bind,source=/home/runner/work/dont_ruin_stuff/dont_ruin_stuff/path/to,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
+          cherrybomb param-table -f home/swagger.json --api-key=bd6d9e4ca4414a44a85978eec024484b
+      - name: Run Ep Table
+        run: >
+          docker run
+          --mount type=bind,source=/home/runner/work/dont_ruin_stuff/dont_ruin_stuff/path/to,destination=/home public.ecr.aws/t1d5k0l0/cherrybomb:latest
+          cherrybomb ep-table -f home/swagger.json --api-key=bd6d9e4ca4414a44a85978eec024484b
