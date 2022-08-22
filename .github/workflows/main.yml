@@ -6,7 +6,6 @@ jobs:
     steps:
       - name: CD
         run: |
-          pwd
           ls
       - name: Run Docker
         run: >
